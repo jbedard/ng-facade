@@ -1,0 +1,39 @@
+{
+    "compilerOptions": {
+        "target": "es5",
+        "module": "commonjs",
+
+        "lib": ["dom", "es5"],
+
+        "alwaysStrict": true,
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
+        "removeComments": false,
+        "sourceMap": true,
+        "declaration": true,
+        "diagnostics": true,
+        "allowSyntheticDefaultImports": true,
+        "forceConsistentCasingInFileNames": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "importHelpers": true,
+        "noEmitHelpers": true,
+        "noEmitOnError": true,
+
+        "outDir": "dist",
+
+        "baseUrl": "src",
+        "paths": {}
+    },
+
+    "files": [
+        "src/facade.ts",
+        "src/facade.spec.ts"
+    ],
+
+    "exclude": [
+        "coverage",
+        "dist",
+        "node_modules"
+    ]
+}

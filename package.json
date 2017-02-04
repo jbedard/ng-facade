@@ -1,0 +1,34 @@
+{
+  "name": "ng-facade",
+  "version": "0.1.1",
+  "description": "Angular style annotations in AngularJS",
+  "main": "dist/facade.js",
+  "types": "dist/facade.d.ts",
+  "author": "Jason Bedard",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/angular": "^1.6",
+    "@types/jasmine": "^2.5",
+    "istanbul": "^0.4",
+    "jasmine": "^2.5",
+    "jasmine-core": "^2.5",
+    "karma": "^1.3",
+    "karma-chrome-launcher": "^2.0",
+    "karma-coverage": "^1.1",
+    "karma-jasmine": "^1.1",
+    "karma-typescript": "^2.1",
+    "tslib": "^1.5.0",
+    "tslint": "^4.4",
+    "typescript": "^2.1"
+  },
+  "dependencies": {
+    "angular": "^1.5",
+    "reflect-metadata": "^0.1"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "karma start karma.conf.js --single-run",
+    "test-server": "karma start karma.conf.js",
+    "lint": "tslint -c ./tslint.json --type-check --project ./tsconfig.json ./src/*.ts"
+  }
+}
