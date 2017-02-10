@@ -23,7 +23,7 @@ describe("facade", function() {
 
     function bootstrapAndInitialize(mod, what) {
         let ref;
-        angular.module("test").run([what, function(thing) { ref = thing; }]);
+        angular.module(mod).run([what, function(thing) { ref = thing; }]);
         bootstrap(mod);
         return ref;
     }
