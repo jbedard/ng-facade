@@ -807,7 +807,7 @@ describe("facade", function() {
     });
 
     it("should use raw function names when running alongside angular-mock", function() {
-        spyOn(window, "angular");
+        spyOn(<any>window, "angular");
         window["angular"].mock = {};
 
         @Injectable()
