@@ -5,16 +5,18 @@
  */
 
 import "reflect-metadata";
-import {module} from "angular";
+import {module, noop, extend} from "angular";
 
 /* TODO...
-    - @Output (https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/metadata/directives.ts#L886)
     - component lifecycle interfaces: https://angular.io/docs/ts/latest/guide/lifecycle-hooks.html ?
     - @Optional, @Self, @SkipSelf, @Host
     - @ViewChild ?
     - @HostListener ? (https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/metadata/directives.ts#L1005)
     - ElementRef ? (https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/linker/element_ref.ts#L24)
 */
+
+
+function valueFn(v) { return function() { return v; }; };
 
 
 const Type = Function;
@@ -44,6 +46,9 @@ function getInjectArray(target: Injectable<any>): any[] {
 function dashToCamel(s: string): string {
     return s.replace(/-([a-z])/g, (a, letter) => letter.toUpperCase());
 }
+
+
+const COMPONENT_SELF_BINDING = "$$self";
 
 
 /**
@@ -139,21 +144,40 @@ function setupProvider(mod: angular.IModule, provider/*: Provider | PipeTransfor
     }
 }
 
+function createCompileFunction(ctrl: Type<any>, $injector: angular.auto.IInjectorService): angular.IDirectiveCompileFn {
+    const pre: Array<Injectable<any>> = ctrl.prototype.$$preLink;
+
+    if (pre) {
+        return valueFn({
+            pre($scope: angular.IScope, $element: JQuery, $attrs: angular.IAttributes, ctrls: {[key: string]: angular.IController}) {
+                const locals = {$scope, $element, $attrs};
+                for (const f of pre) {
+                    $injector.invoke(f, ctrls[COMPONENT_SELF_BINDING], locals);
+                }
+            }
+        });
+    }
+}
+
+function addPreLink(targetPrototype, fn: Injectable<any>) {
+    (targetPrototype.$$preLink || (targetPrototype.$$preLink = [])).push(fn);
+}
+
 function setupComponent(mod: angular.IModule, ctrl: Type<any>, decl: Component): void {
     const bindings = {};
 
     //@Input(Type)s
-    ((<any>ctrl).$$inputs || []).forEach(function(input: InternalInputMetadata) {
+    ((<any>ctrl).$$inputs || []).forEach(function(input: InternalBindingMetadata) {
         bindings[input.name] = input.type + "?" + (input.publicName || "");
     });
 
     //@Require()s
-    const require = ((<any>ctrl).$$require);
+    const require = extend({[COMPONENT_SELF_BINDING]: decl.selector}, (<any>ctrl).$$require || {});
 
     //Simplified component -> directive mapping similar to
     // https://github.com/angular/angular.js/blob/v1.6.2/src/ng/compile.js#L1227
 
-    mod.directive(dashToCamel(decl.selector), function() {
+    mod.directive(dashToCamel(decl.selector), ["$injector", function($injector: angular.auto.IInjectorService) {
         return {
             //https://github.com/angular/angular.js/blob/v1.6.2/src/ng/compile.js#L1242-L1252
             controller: ctrl,
@@ -163,9 +187,12 @@ function setupComponent(mod: angular.IModule, ctrl: Type<any>, decl: Component):
             scope: {},
             bindToController: bindings,
             restrict: "E",
-            require
+            require,
+
+            //Create a compile function to do setup
+            compile: createCompileFunction(ctrl, $injector)
         };
-    });
+    }]);
 }
 
 function setupDirective(mod: angular.IModule, ctrl: Type<any>, decl: Directive): void {
@@ -278,17 +305,22 @@ export function Pipe(info: Pipe): ClassDecorator {
 }
 
 
-interface InternalInputMetadata {
+interface InternalBindingMetadata {
     name: string;
     publicName: string;
     type: string;
 }
+
+function addBinding(targetPrototype: Object, data: InternalBindingMetadata) {
+    const constructor = <any>targetPrototype.constructor;
+
+    (constructor.$$inputs || (constructor.$$inputs = [])).push(data);
+}
+
 function createInputDecorator(type: string) {
     return function InputDecorator(publicName?: string): PropertyDecorator {
         return function(targetPrototype: Object, propertyKey: string): void {
-            const constructor = <any>targetPrototype.constructor;
-
-            (constructor.$$inputs || (constructor.$$inputs = [])).push(<InternalInputMetadata>{
+            addBinding(targetPrototype, {
                 name: propertyKey,
                 publicName,
                 type
@@ -324,6 +356,52 @@ export const InputString = createInputDecorator("@");
  * Works as a &-binding in AngularJS.
  */
 export const InputCallback = createInputDecorator("&");
+
+
+const OUTPUT_BOUND_CALLBACK_PREFIX = "__event_";
+
+/**
+ * @Output
+ *
+ * https://angular.io/docs/ts/latest/api/core/index/Output-interface.html
+ */
+export function Output(publicName?: string): PropertyDecorator {
+    return function(targetPrototype: Object, propertyKey: string): void {
+        const propertyType: Type<any> = Reflect.getMetadata("design:type", targetPrototype, propertyKey);
+        if (!(propertyType === EventEmitter || propertyType.prototype instanceof EventEmitter)) {
+            throw new Error(`${(<any>targetPrototype.constructor).name}.${propertyKey} type must be EventEmitter`);
+        }
+
+        const internalCallback = OUTPUT_BOUND_CALLBACK_PREFIX + propertyKey;
+
+        addBinding(targetPrototype, {
+            name: internalCallback,
+            publicName: publicName || propertyKey,
+            type: "&"
+        });
+
+        addPreLink(targetPrototype, function() {
+            (<EventEmitter<any>>this[propertyKey]).emit = (value) => {
+                (this[internalCallback] || noop)({$event: value});
+            };
+        });
+    };
+};
+
+/**
+ * EventEmitter
+ *
+ * A subset of the Angular interface.
+ *
+ * https://angular.io/docs/ts/latest/api/core/index/EventEmitter-class.html
+ */
+//https://github.com/angular/angular/blob/2.4.7/modules/%40angular/facade/src/async.ts
+export class EventEmitter<T> {
+    public emit(value?: T): void {
+        throw new Error("Uninitialized EventEmitter");
+    }
+}
+
 
 /**
  * @Require

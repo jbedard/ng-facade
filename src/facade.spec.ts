@@ -2,7 +2,11 @@ import "jasmine";
 import "tslib";
 import * as angular from "angular";
 
-import {Inject, Injectable, PipeTransform, Pipe, Input, InputString, InputCallback, Require, Directive, Component, NgModule} from "./facade";
+import {Inject, Injectable, PipeTransform, Pipe, Input, InputString, InputCallback, Output, EventEmitter, Require, Directive, Component, NgModule} from "./facade";
+
+//Copied from facade.ts to avoid exposing publicly
+const OUTPUT_BOUND_CALLBACK_PREFIX = "__event_";
+
 
 describe("facade", function() {
     const toDestroy = [];
@@ -26,6 +30,19 @@ describe("facade", function() {
         angular.module(mod).run([what, function(thing) { ref = thing; }]);
         bootstrap(mod);
         return ref;
+    }
+
+    function bootstrapAndCompile(mod: string, html: string, scopeData = {}) {
+        const $injector = bootstrapAndInitialize("compMod", "$injector");
+        const $compile = $injector.get("$compile");
+        const $rootScope = $injector.get("$rootScope");
+
+        const $scope = angular.extend($rootScope.$new(), scopeData);
+        const $dom = $compile(html)($scope);
+
+        $rootScope.$digest();
+
+        return {$scope, $dom, $injector, $rootScope};
     }
 
     function createMockModule() {
@@ -542,7 +559,7 @@ describe("facade", function() {
             const [name, factory] = spies.directive.calls.mostRecent().args;
 
             expect(name).toEqual(nameExpectation);
-            expect(factory()).toEqual(definitionExpectation);
+            expect(factory[factory.length - 1]()).toEqual(definitionExpectation);
         }
 
         it("should delegate @Component() in @NgModule{declarations} to module.directive", function() {
@@ -647,6 +664,249 @@ describe("facade", function() {
             expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({bindToController: {inputName: "&?"}, controller: Comp}));
         });
 
+        it("should convert @Output() fields to module.directive &? bindToController", function() {
+            const spies = createMockModule();
+
+            @Component({
+                selector: "comp"
+            })
+            class Comp {
+                @Output()
+                public outputName: EventEmitter<any> = new EventEmitter();
+            }
+
+            @NgModule({id: "compMod", declarations: [Comp]})
+            class Mod {}
+
+            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
+                bindToController: {[OUTPUT_BOUND_CALLBACK_PREFIX + "outputName"]: "&?outputName"},
+                controller: Comp
+            }));
+        });
+
+        it("should convert @Output('altName') fields to module.directive aliased &? bindToController", function() {
+            const spies = createMockModule();
+
+            @Component({
+                selector: "comp"
+            })
+            class Comp {
+                @Output("altName")
+                public outputName: EventEmitter<any> = new EventEmitter();
+            }
+
+            @NgModule({id: "compMod", declarations: [Comp]})
+            class Mod {}
+
+            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
+                bindToController: {[OUTPUT_BOUND_CALLBACK_PREFIX + "outputName"]: "&?altName"},
+                controller: Comp
+            }));
+        });
+
+        it("should convert multiple @Output() fields to multiple module.directive &? bindToController", function() {
+            const spies = createMockModule();
+
+            @Component({
+                selector: "comp"
+            })
+            class Comp {
+                @Output()
+                public outputName: EventEmitter<any> = new EventEmitter();
+                @Output("nameTwo")
+                public outputName2: EventEmitter<any>;
+            }
+
+            @NgModule({id: "compMod", declarations: [Comp]})
+            class Mod {}
+
+            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
+                bindToController: {
+                    [OUTPUT_BOUND_CALLBACK_PREFIX + "outputName"]: "&?outputName",
+                    [OUTPUT_BOUND_CALLBACK_PREFIX + "outputName2"]: "&?nameTwo"
+                },
+                controller: Comp
+            }));
+        });
+
+        it("should invoke binding expressions when @Output() EventEmitter.emit invoked", function() {
+            let instance: Comp;
+
+            @Component({
+                selector: "comp"
+            })
+            class Comp {
+                @Output()
+                public outputName: EventEmitter<any> = new EventEmitter();
+
+                constructor() {
+                    instance = this;
+                }
+
+                fire() {
+                    this.outputName.emit();
+                }
+            }
+
+            @NgModule({id: "compMod", declarations: [Comp]})
+            class Mod {}
+
+            const foo = jasmine.createSpy("callback");
+
+            bootstrapAndCompile("compMod", "<comp output-name='foo()'>", {foo});
+
+            expect(instance).toEqual(jasmine.any(Comp));
+
+            instance.fire();
+            expect(foo).toHaveBeenCalled();
+        });
+
+        it("should invoke binding local $event variable when invoking @Output() EventEmitters", function() {
+            let instance: Comp;
+
+            @Component({
+                selector: "comp"
+            })
+            class Comp {
+                @Output()
+                public outputName: EventEmitter<number> = new EventEmitter();
+
+                constructor() {
+                    instance = this;
+                }
+
+                fire(n) {
+                    this.outputName.emit(n);
+                }
+            }
+
+            @NgModule({id: "compMod", declarations: [Comp]})
+            class Mod {}
+
+            const foo = jasmine.createSpy("callback");
+
+            bootstrapAndCompile("compMod", "<comp output-name='foo($event)'>", {foo});
+
+            expect(instance).toEqual(jasmine.any(Comp));
+
+            instance.fire(1);
+            expect(foo).toHaveBeenCalledWith(1);
+        });
+
+        it("should throw when emiting @Output() within $onInit", function() {
+            let caughtException;
+
+            @Component({
+                selector: "comp"
+            })
+            class Comp {
+                @Output()
+                public outputName: EventEmitter<number> = new EventEmitter();
+
+                $onInit() {
+                    try {
+                        this.outputName.emit(1);
+                    }
+                    catch (e) {
+                        caughtException = e;
+                    }
+                }
+            }
+
+            @NgModule({id: "compMod", declarations: [Comp]})
+            class Mod {}
+
+            bootstrapAndCompile("compMod", "<comp output-name='foo($event)'>");
+
+            expect(caughtException).toEqual(new Error("Uninitialized EventEmitter"));
+        });
+
+        it("should throw when emiting @Output() before $onInit", function() {
+            @Component({
+                selector: "comp"
+            })
+            class Comp {
+                @Output()
+                public outputName: EventEmitter<number> = new EventEmitter();
+
+                constructor() {
+                    this.outputName.emit(1);
+                }
+            }
+
+            @NgModule({id: "compMod", declarations: [Comp]})
+            class Mod {}
+
+            expect(function() { return new EventEmitter().emit(); }).toThrowError("Uninitialized EventEmitter");
+
+            expect(function() { return new Comp(); }).toThrowError("Uninitialized EventEmitter");
+
+            expect(function() {
+                bootstrapAndCompile("compMod", "<comp>");
+            })
+            .toThrowError("Uninitialized EventEmitter");
+        });
+
+        it("should support emiting @Output() emitters with no bound callback", function() {
+            let instance: Comp;
+
+            @Component({
+                selector: "comp"
+            })
+            class Comp {
+                @Output()
+                public outputName: EventEmitter<number> = new EventEmitter();
+
+                constructor() {
+                    instance = this;
+                }
+
+                fire(n) {
+                    this.outputName.emit(n);
+                }
+            }
+
+            @NgModule({id: "compMod", declarations: [Comp]})
+            class Mod {}
+
+            const foo = jasmine.createSpy("callback");
+
+            bootstrapAndCompile("compMod", "<comp>", {foo});
+
+            expect(instance).toEqual(jasmine.any(Comp));
+
+            instance.fire(1);
+            instance.fire(2);
+        });
+
+        it("should throw if @Output() does not have EventEmitter as type", function() {
+            expect(function() {
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @Output()
+                    public outputName;
+                }
+            })
+            .toThrowError("Comp.outputName type must be EventEmitter");
+        });
+
+        it("should allow extensions of EventEmitter as @Output() type", function() {
+            class ExtendedEmitter extends EventEmitter<number> {}
+
+            expect(function() {
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @Output()
+                    public outputName: ExtendedEmitter;
+                }
+            })
+            .not.toThrow();
+        });
+
         it("should convert @Require() fields to module.directive require with same name as field", function() {
             const spies = createMockModule();
 
@@ -661,7 +921,10 @@ describe("facade", function() {
             @NgModule({id: "compMod", declarations: [Comp]})
             class Mod {}
 
-            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({require: {requirement: "requirement"}, controller: Comp}));
+            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
+                require: jasmine.objectContaining({requirement: "requirement"}),
+                controller: Comp
+            }));
         });
 
         it("should convert @Require('^') fields to module.directive require with same name as field", function() {
@@ -678,7 +941,10 @@ describe("facade", function() {
             @NgModule({id: "compMod", declarations: [Comp]})
             class Mod {}
 
-            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({require: {requirement: "^requirement"}, controller: Comp}));
+            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
+                require: jasmine.objectContaining({requirement: "^requirement"}),
+                controller: Comp
+            }));
         });
 
         it("should convert @Require('publicName') fields to module.directive require", function() {
@@ -695,7 +961,10 @@ describe("facade", function() {
             @NgModule({id: "compMod", declarations: [Comp]})
             class Mod {}
 
-            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({require: {requirement: "publicName"}, controller: Comp}));
+            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
+                require: jasmine.objectContaining({requirement: "publicName"}),
+                controller: Comp
+            }));
         });
 
         it("should convert @Require('^^publicName') fields to module.directive require", function() {
@@ -712,7 +981,10 @@ describe("facade", function() {
             @NgModule({id: "compMod", declarations: [Comp]})
             class Mod {}
 
-            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({require: {requirement: "^^publicName"}, controller: Comp}));
+            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
+                require: jasmine.objectContaining({requirement: "^^publicName"}),
+                controller: Comp
+            }));
         });
     });
 
