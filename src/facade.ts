@@ -282,25 +282,17 @@ interface InternalInputMetadata {
     type: string;
 }
 function createInputDecorator(type: string) {
-    return function InputDecorator(thing?: Input | string): PropertyDecorator {
+    return function InputDecorator(publicName?: string): PropertyDecorator {
         return function(targetPrototype: Object, propertyKey: string): void {
             const constructor = <any>targetPrototype.constructor;
 
             (constructor.$$inputs || (constructor.$$inputs = [])).push(<InternalInputMetadata>{
                 name: propertyKey,
-                publicName: thing && (<any>thing).bindingPropertyName || thing,
+                publicName,
                 type
             });
         };
     };
-}
-
-/**
- * Paramaters for @Input
- */
-//https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/metadata/directives.ts#L815
-export interface Input {
-    bindingPropertyName?: string;
 }
 
 /**
