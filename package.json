@@ -1,6 +1,6 @@
 {
   "name": "ng-facade",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Angular style annotations in AngularJS",
   "main": "dist/facade.js",
   "types": "dist/facade.d.ts",
