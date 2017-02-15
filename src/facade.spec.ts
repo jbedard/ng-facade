@@ -272,10 +272,31 @@ describe("facade", function() {
             expect(arg1).toBe(arg0);
         });
 
+        it("should convert class P { transform() } to a $filter method", function() {
+            const transformSpy = jasmine.createSpy("transform");
+
+            @Pipe({name: "resultPipe"})
+            class P implements PipeTransform {
+                transform(...args) {
+                    return args.reduce((t,x) => t+x, 0);
+                }
+            }
+
+            @NgModule({id: "test", providers: [P]})
+            class Mod {}
+
+            const myPipe = bootstrapAndInitialize("test", "resultPipeFilter");
+
+            expect(myPipe()).toBe(0);
+            expect(myPipe(1)).toBe(1);
+            expect(myPipe(1, 2)).toBe(3);
+            expect(myPipe(1, 2, 3)).toBe(6);
+        });
+
         it("should convert class P { transform() } to a P-instance bound filter method", function() {
             const transformSpy = jasmine.createSpy("transform");
 
-            @Pipe({name: "noPure"})
+            @Pipe({name: "argsTest"})
             class P implements PipeTransform {
                 transform() {
                     transformSpy.apply(this, arguments);
@@ -285,11 +306,11 @@ describe("facade", function() {
             @NgModule({id: "test", providers: [P]})
             class Mod {}
 
-            const myPipe = bootstrapAndInitialize("test", "noPureFilter");
+            const myPipe = bootstrapAndInitialize("test", "argsTestFilter");
 
             myPipe(1, 2, 3);
 
-            expect(transformSpy.calls.mostRecent().object instanceof P);
+            expect(transformSpy.calls.mostRecent().object).toEqual(jasmine.any(P));
             expect(transformSpy).toHaveBeenCalledWith(1, 2, 3);
         });
 

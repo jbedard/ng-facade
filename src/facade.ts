@@ -108,7 +108,7 @@ function setupProvider(mod: angular.IModule, provider/*: Provider | PipeTransfor
     if (provider.$$pipe) {
         mod.filter(provider.$$pipe.name, ["$injector", function($injector) {
             const pipe = $injector.instantiate(provider);
-            const transform = pipe.transform.bind(provider);
+            const transform = pipe.transform.bind(pipe);
             transform.$stateful = (false === provider.$$pipe.pure);
             return transform;
         }]);
