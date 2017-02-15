@@ -34,7 +34,7 @@
         "no-shadowed-variable": true,
         "no-string-throw": true,
         "no-reference": true,
-        // "no-unsafe-any": true,
+        "no-require-imports": true,
         "no-unsafe-finally": true,
         "no-unused-expression": true,
         "no-unused-new": true,
@@ -50,9 +50,12 @@
         "indent": [true, "spaces"],
         "no-mergeable-namespace": true,
         "no-trailing-whitespace": true,
+        "prefer-const": true,
+        "strict-type-predicates": true,
         "trailing-comma": [true, {"multiline": "never", "singleline": "never"}],
 
         //Style
+        "align": true,
         "arrow-return-shorthand": true,
         "callable-types": true,
         "class-name": true,
@@ -66,6 +69,6 @@
         "semicolon": [true, "always"],
         "space-before-function-paren": [true, "never"],
         "variable-name": [true, "ban-keywords"],
-        "whitespace": [true, "check-branch", "check-module", "check-preblock", "check-type"]
+        "whitespace": [true, "check-branch", "check-decl", "check-module", "check-operator", "check-preblock", "check-separator", "check-type"]
     }
 }

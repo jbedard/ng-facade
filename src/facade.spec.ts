@@ -287,10 +287,10 @@ describe("facade", function() {
 
             const myPipe = bootstrapAndInitialize("test", "noPureFilter");
 
-            myPipe(1,2,3);
+            myPipe(1, 2, 3);
 
             expect(transformSpy.calls.mostRecent().object instanceof P);
-            expect(transformSpy).toHaveBeenCalledWith(1,2,3);
+            expect(transformSpy).toHaveBeenCalledWith(1, 2, 3);
         });
 
         it("should default @Pipe() to non-$stateful", function() {
@@ -465,8 +465,8 @@ describe("facade", function() {
 
                 const $injector = bootstrapAndInitialize("test", "$injector");
 
-                let instance1 = $injector.instantiate(Service);
-                let instance2 = $injector.instantiate(Service);
+                const instance1 = $injector.instantiate(Service);
+                const instance2 = $injector.instantiate(Service);
 
                 expect(instance1).toEqual(jasmine.any(Service));
                 expect(instance2).toEqual(jasmine.any(Service));

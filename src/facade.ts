@@ -58,7 +58,7 @@ function dashToCamel(s: string): string {
 function injectMethod<T extends Injectable<any>>(method: T) {
     //Array<string | Type> => Array<string>
     if (Array.isArray(method)) {
-        for (let i=0; i<method.length-1; i++) {
+        for (let i = 0; i < method.length - 1; i++) {
             if (typeof method[i] !== "string") {
                 method[i] = getTypeName(method[i]);
             }
@@ -72,7 +72,7 @@ function injectMethod<T extends Injectable<any>>(method: T) {
     if (paramTypes) {
         const $inject = getInjectArray(method);
 
-        for (let i=0; i<paramTypes.length; i++) {
+        for (let i = 0; i < paramTypes.length; i++) {
             //Try to extract types via TypeScript if currently unknown
             if (undefined === $inject[i]) {
                 $inject[i] = paramTypes[i];
@@ -83,7 +83,7 @@ function injectMethod<T extends Injectable<any>>(method: T) {
     //Types extracted from TypeScript or specificed manually in $inject
     const $inject = method.$inject;
     if ($inject) {
-        for (let i=0; i<$inject.length; i++) {
+        for (let i = 0; i < $inject.length; i++) {
             //Convert type => string for injection via types
             if ($inject[i].$$injectable) {
                 $inject[i] = getTypeName($inject[i]);
@@ -173,8 +173,8 @@ function setupDirective(mod: angular.IModule, ctrl: Type<any>, decl: Directive):
     //this library does not support class
     let name = decl.selector;
     let restrict = "E";
-    if (name[0] === "[" && name[name.length-1] === "]") {
-        name = name.slice(1, name.length-1);
+    if (name[0] === "[" && name[name.length - 1] === "]") {
+        name = name.slice(1, name.length - 1);
         restrict = "A";
     }
     else if (name[0] === ".") {
