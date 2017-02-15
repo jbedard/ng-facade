@@ -2,10 +2,24 @@
   "name": "ng-facade",
   "version": "0.1.2",
   "description": "Angular style annotations in AngularJS",
+  "homepage": "https://github.com/jbedard/ng-facade",
+  "keywords": [
+    "angular",
+    "angular2",
+    "angularjs",
+    "typescript",
+    "annotations",
+    "decorators",
+    "metadata"
+  ],
   "main": "dist/facade.js",
   "types": "dist/facade.d.ts",
   "author": "Jason Bedard",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jbedard/ng-facade.git"
+  },
   "devDependencies": {
     "@types/angular": "^1.6",
     "@types/jasmine": "^2.5",
