@@ -686,36 +686,6 @@ describe("facade", function() {
 
             expect(spies.component).toHaveBeenCalledWith("comp", jasmine.objectContaining({require: {requirement: "^^publicName"}, controller: Comp}));
         });
-
-        it("should convert @Component inputs[] declarations to module.component <? bindings", function() {
-            const spies = createMockModule();
-
-            @Component({
-                selector: "comp",
-                inputs: ["a", "b"]
-            })
-            class Comp {}
-
-            @NgModule({id: "compMod", declarations: [Comp]})
-            class Mod {}
-
-            expect(spies.component).toHaveBeenCalledWith("comp", jasmine.objectContaining({bindings: {a: "<?", b: "<?"}, controller: Comp}));
-        });
-
-        it("should convert @Component inputs[] declarations with aliases to module.component <? bindings", function() {
-            const spies = createMockModule();
-
-            @Component({
-                selector: "comp",
-                inputs: ["a: foo ", " b : bar"]
-            })
-            class Comp {}
-
-            @NgModule({id: "compMod", declarations: [Comp]})
-            class Mod {}
-
-            expect(spies.component).toHaveBeenCalledWith("comp", jasmine.objectContaining({bindings: {a: "<?foo", b: "<?bar"}, controller: Comp}));
-        });
     });
 
     describe("@Directive", function() {
@@ -789,20 +759,6 @@ describe("facade", function() {
                 class Dir {
                     @Input() public foo;
                 }
-
-                expect(function() {
-                    @NgModule({id: "compMod", declarations: [Dir]})
-                    class Mod {}
-                })
-                .toThrow();
-            });
-
-            it("should throw when using inputs[]", function() {
-                @Directive({
-                    selector: "dir",
-                    inputs: ["a"]
-                })
-                class Dir {}
 
                 expect(function() {
                     @NgModule({id: "compMod", declarations: [Dir]})

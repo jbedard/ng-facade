@@ -147,12 +147,6 @@ function setupComponent(mod: angular.IModule, ctrl: Type<any>, decl: Component):
         bindings[input.name] = input.type + "?" + (input.publicName || "");
     });
 
-    //inputs[]
-    (decl.inputs || []).forEach(function(input) {
-        const [name, publicName] = input.split(":").map((s) => s.trim());
-        bindings[name] = `<?${publicName || ""}`;
-    });
-
     //@Require()s
     const require = ((<any>ctrl).$$require);
 
@@ -183,7 +177,7 @@ function setupDirective(mod: angular.IModule, ctrl: Type<any>, decl: Directive):
     }
 
     //TODO: inputs on Directive which has no isolated scope?
-    if (decl.inputs || (<any>ctrl).$$inputs) {
+    if ((<any>ctrl).$$inputs) {
         throw new Error("Directive inputs unsupported");
     }
 
@@ -346,8 +340,6 @@ export function Require(name?: string): PropertyDecorator {
 export interface Directive {
     selector: string;
 
-    inputs?: string[];
-
     //NOT SUPPORTED...
     // providers: Provider[];
     // exportAs: string;
@@ -355,6 +347,7 @@ export interface Directive {
     // host: {[key: string]: string};
 
     //MAYBE LATER:
+    // inputs?: string[];
     // outputs: string[];    requires EventEmitter?
 }
 
