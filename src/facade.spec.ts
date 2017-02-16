@@ -35,7 +35,6 @@ describe("facade", function() {
             service: jasmine.createSpy("service"),
             factory: jasmine.createSpy("factory"),
             directive: jasmine.createSpy("directive"),
-            component: jasmine.createSpy("component"),
             filter: jasmine.createSpy("filter")
         };
 
@@ -537,7 +536,16 @@ describe("facade", function() {
     });
 
     describe("@Component", function() {
-        it("should delegate @Component() in @NgModule{declarations} to module.component", function() {
+        function expectDirectiveDefinitionCall(spies, nameExpectation, definitionExpectation) {
+            expect(spies.directive).toHaveBeenCalled();
+
+            const [name, factory] = spies.directive.calls.mostRecent().args;
+
+            expect(name).toEqual(nameExpectation);
+            expect(factory()).toEqual(definitionExpectation);
+        }
+
+        it("should delegate @Component() in @NgModule{declarations} to module.directive", function() {
             const spies = createMockModule();
 
             @Component({
@@ -548,10 +556,30 @@ describe("facade", function() {
             @NgModule({id: "compMod", declarations: [Comp]})
             class Mod {}
 
-            expect(spies.component).toHaveBeenCalledWith("compSelector", jasmine.objectContaining({controller: Comp}));
+            expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({controller: Comp}));
         });
 
-        it("should convert @Input() fields to module.component <? bindings", function() {
+        it("should provide module.component like defaults for @Component() to module.directive", function() {
+            const spies = createMockModule();
+
+            @Component({
+                selector: "comp-selector"
+            })
+            class Comp {}
+
+            @NgModule({id: "compMod", declarations: [Comp]})
+            class Mod {}
+
+            expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({
+                controller: Comp,
+                controllerAs: "$ctrl",
+                scope: {},
+                bindToController: {},
+                restrict: "E"
+            }));
+        });
+
+        it("should convert @Input() fields to module.directive <? bindToController", function() {
             const spies = createMockModule();
 
             @Component({
@@ -565,10 +593,10 @@ describe("facade", function() {
             @NgModule({id: "compMod", declarations: [Comp]})
             class Mod {}
 
-            expect(spies.component).toHaveBeenCalledWith("comp", jasmine.objectContaining({bindings: {inputName: "<?"}, controller: Comp}));
+            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({bindToController: {inputName: "<?"}, controller: Comp}));
         });
 
-        it("should convert @Input('altName') fields to module.component aliased <? bindings", function() {
+        it("should convert @Input('altName') fields to module.directive aliased <? bindToController", function() {
             const spies = createMockModule();
 
             @Component({
@@ -582,10 +610,10 @@ describe("facade", function() {
             @NgModule({id: "compMod", declarations: [Comp]})
             class Mod {}
 
-            expect(spies.component).toHaveBeenCalledWith("comp", jasmine.objectContaining({bindings: {inputName: "<?altName"}, controller: Comp}));
+            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({bindToController: {inputName: "<?altName"}, controller: Comp}));
         });
 
-        it("should convert @InputString() fields to module.component @? bindings", function() {
+        it("should convert @InputString() fields to module.directive @? bindToController", function() {
             const spies = createMockModule();
 
             @Component({
@@ -599,10 +627,10 @@ describe("facade", function() {
             @NgModule({id: "compMod", declarations: [Comp]})
             class Mod {}
 
-            expect(spies.component).toHaveBeenCalledWith("comp", jasmine.objectContaining({bindings: {inputName: "@?"}, controller: Comp}));
+            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({bindToController: {inputName: "@?"}, controller: Comp}));
         });
 
-        it("should convert @InputCallback() fields to module.component &? bindings", function() {
+        it("should convert @InputCallback() fields to module.directive &? bindToController", function() {
             const spies = createMockModule();
 
             @Component({
@@ -616,10 +644,10 @@ describe("facade", function() {
             @NgModule({id: "compMod", declarations: [Comp]})
             class Mod {}
 
-            expect(spies.component).toHaveBeenCalledWith("comp", jasmine.objectContaining({bindings: {inputName: "&?"}, controller: Comp}));
+            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({bindToController: {inputName: "&?"}, controller: Comp}));
         });
 
-        it("should convert @Require() fields to module.component require with same name as field", function() {
+        it("should convert @Require() fields to module.directive require with same name as field", function() {
             const spies = createMockModule();
 
             @Component({
@@ -633,10 +661,10 @@ describe("facade", function() {
             @NgModule({id: "compMod", declarations: [Comp]})
             class Mod {}
 
-            expect(spies.component).toHaveBeenCalledWith("comp", jasmine.objectContaining({require: {requirement: "requirement"}, controller: Comp}));
+            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({require: {requirement: "requirement"}, controller: Comp}));
         });
 
-        it("should convert @Require('^') fields to module.component require with same name as field", function() {
+        it("should convert @Require('^') fields to module.directive require with same name as field", function() {
             const spies = createMockModule();
 
             @Component({
@@ -650,10 +678,10 @@ describe("facade", function() {
             @NgModule({id: "compMod", declarations: [Comp]})
             class Mod {}
 
-            expect(spies.component).toHaveBeenCalledWith("comp", jasmine.objectContaining({require: {requirement: "^requirement"}, controller: Comp}));
+            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({require: {requirement: "^requirement"}, controller: Comp}));
         });
 
-        it("should convert @Require('publicName') fields to module.component require", function() {
+        it("should convert @Require('publicName') fields to module.directive require", function() {
             const spies = createMockModule();
 
             @Component({
@@ -667,10 +695,10 @@ describe("facade", function() {
             @NgModule({id: "compMod", declarations: [Comp]})
             class Mod {}
 
-            expect(spies.component).toHaveBeenCalledWith("comp", jasmine.objectContaining({require: {requirement: "publicName"}, controller: Comp}));
+            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({require: {requirement: "publicName"}, controller: Comp}));
         });
 
-        it("should convert @Require('^^publicName') fields to module.component require", function() {
+        it("should convert @Require('^^publicName') fields to module.directive require", function() {
             const spies = createMockModule();
 
             @Component({
@@ -684,7 +712,7 @@ describe("facade", function() {
             @NgModule({id: "compMod", declarations: [Comp]})
             class Mod {}
 
-            expect(spies.component).toHaveBeenCalledWith("comp", jasmine.objectContaining({require: {requirement: "^^publicName"}, controller: Comp}));
+            expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({require: {requirement: "^^publicName"}, controller: Comp}));
         });
     });
 

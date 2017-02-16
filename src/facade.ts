@@ -150,13 +150,21 @@ function setupComponent(mod: angular.IModule, ctrl: Type<any>, decl: Component):
     //@Require()s
     const require = ((<any>ctrl).$$require);
 
-    mod.component(dashToCamel(decl.selector), {
-        template: decl.template,
-        bindings,
-        require,
-        controller: ctrl,
-        controllerAs: decl.controllerAs,
-        transclude: decl.transclude
+    //Simplified component -> directive mapping similar to
+    // https://github.com/angular/angular.js/blob/v1.6.2/src/ng/compile.js#L1227
+
+    mod.directive(dashToCamel(decl.selector), function() {
+        return {
+            //https://github.com/angular/angular.js/blob/v1.6.2/src/ng/compile.js#L1242-L1252
+            controller: ctrl,
+            controllerAs: decl.controllerAs || "$ctrl",
+            template: decl.template,
+            transclude: decl.transclude,
+            scope: {},
+            bindToController: bindings,
+            restrict: "E",
+            require
+        };
     });
 }
 
