@@ -277,7 +277,7 @@ describe("facade", function() {
             @Pipe({name: "resultPipe"})
             class P implements PipeTransform {
                 transform(...args) {
-                    return args.reduce((t,x) => t+x, 0);
+                    return args.reduce((t, x) => t + x, 0);
                 }
             }
 
