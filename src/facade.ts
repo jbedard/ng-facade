@@ -223,6 +223,11 @@ function setupDirective(mod: angular.IModule, ctrl: Type<any>, decl: Directive):
         throw new Error("Directive input unsupported");
     }
 
+    //TODO: require on Directive which has no isolated scope?
+    if ((<any>ctrl).$$require) {
+        throw new Error("Directive require unsupported");
+    }
+
     //reference to self
     const require = {[COMPONENT_SELF_BINDING]: name};
 

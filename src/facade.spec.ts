@@ -1199,6 +1199,36 @@ describe("facade", function() {
                 })
                 .toThrowError("Directive input unsupported");
             });
+
+            it("should throw when using @Output", function() {
+                @Directive({
+                    selector: "dir"
+                })
+                class Dir {
+                    @Output() public foo: EventEmitter<any>;
+                }
+
+                expect(function() {
+                    @NgModule({id: "compMod", declarations: [Dir]})
+                    class Mod {}
+                })
+                .toThrowError("Directive input unsupported");
+            });
+
+            it("should throw when using @Require", function() {
+                @Directive({
+                    selector: "dir"
+                })
+                class Dir {
+                    @Require() public foo;
+                }
+
+                expect(function() {
+                    @NgModule({id: "compMod", declarations: [Dir]})
+                    class Mod {}
+                })
+                .toThrowError("Directive require unsupported");
+            });
         });
 
         describe("@HostListener", function() {
