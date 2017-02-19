@@ -15,7 +15,7 @@ import {module, noop, extend} from "angular";
 */
 
 
-function valueFn(v) { return function() { return v; }; };
+function valueFn<T>(v: T): () => T { return () => v; };
 
 
 //https://github.com/angular/angular/blob/2.4.8/modules/%40angular/core/src/type.ts
@@ -100,7 +100,7 @@ function injectMethod<T extends Injectable<any>>(method: T) {
 }
 
 
-function isPipeTransform(o: any): o is PipeTransform {
+function isPipeTransform(o: any): o is PipeTransform & TypeProvider {
     return "$$pipe" in o;
 }
 function isExistingProvider(o: Provider): o is ExistingProvider {
@@ -122,8 +122,8 @@ function setupProvider(mod: angular.IModule, provider: Provider): void {
     //PipeTransform
     if (isPipeTransform(provider)) {
         const pipeInfo: Pipe = (<any>provider).$$pipe;
-        mod.filter(pipeInfo.name, ["$injector", function($injector) {
-            const pipe = $injector.instantiate(provider);
+        mod.filter(pipeInfo.name, ["$injector", function($injector: angular.auto.IInjectorService) {
+            const pipe = $injector.instantiate<PipeTransform>(provider);
             const transform = pipe.transform.bind(pipe);
             transform.$stateful = (false === pipeInfo.pure);
             return transform;
@@ -132,7 +132,7 @@ function setupProvider(mod: angular.IModule, provider: Provider): void {
     //ExistingProvider
     else if (isExistingProvider(provider)) {
         const existingName = provider.useExisting;
-        mod.factory(getTypeName(provider.provide), ["$injector", function($injector) {
+        mod.factory(getTypeName(provider.provide), ["$injector", function($injector: angular.auto.IInjectorService) {
             return $injector.get(existingName);
         }]);
     }
@@ -166,7 +166,7 @@ function createCompileFunction(ctrl: Type<any>, $injector: angular.auto.IInjecto
     }
 }
 
-function addPreLink(targetPrototype, fn: Injectable<any>) {
+function addPreLink(targetPrototype, fn: Injectable<any>): void {
     (targetPrototype.$$preLink || (targetPrototype.$$preLink = [])).push(fn);
 }
 
@@ -184,7 +184,7 @@ function setupComponent(mod: angular.IModule, ctrl: Type<any>, decl: Component):
     //Simplified component -> directive mapping similar to
     // https://github.com/angular/angular.js/blob/v1.6.2/src/ng/compile.js#L1227
 
-    mod.directive(dashToCamel(decl.selector), ["$injector", function($injector: angular.auto.IInjectorService) {
+    mod.directive(dashToCamel(decl.selector), ["$injector", function($injector: angular.auto.IInjectorService): angular.IDirective {
         return {
             //https://github.com/angular/angular.js/blob/v1.6.2/src/ng/compile.js#L1242-L1252
             controller: ctrl,
@@ -223,7 +223,7 @@ function setupDirective(mod: angular.IModule, ctrl: Type<any>, decl: Directive):
         throw new Error("Directive inputs unsupported");
     }
 
-    mod.directive(dashToCamel(name), function() {
+    mod.directive(dashToCamel(name), function(): angular.IDirective {
         return {
             restrict,
             controller: ctrl
@@ -318,7 +318,7 @@ interface InternalBindingMetadata {
     type: string;
 }
 
-function addBinding(targetPrototype: Object, data: InternalBindingMetadata) {
+function addBinding(targetPrototype: Object, data: InternalBindingMetadata): void {
     const constructor = <any>targetPrototype.constructor;
 
     (constructor.$$inputs || (constructor.$$inputs = [])).push(data);
@@ -420,7 +420,7 @@ export class EventEmitter<T> {
 //https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/metadata/directives.ts#L1005-L1017
 export function HostListener(eventType: string, args: string[] = []): MethodDecorator {
     return function(targetPrototype: Object, propertyKey: string): void {
-        function HostListenerSetup($element: JQuery, $parse: angular.IParseService, $injector: angular.auto.IInjectorService) {
+        function HostListenerSetup($element: JQuery, $parse: angular.IParseService, $injector: angular.auto.IInjectorService): void {
             //Parse the listener arguments on component initialization
             const argExps = args.map((s) => $parse(s));
 
@@ -591,7 +591,7 @@ export interface NgModule {
  *
  * https://angular.io/docs/ts/latest/api/core/index/NgModule-interface.html
  */
-export function NgModule(info: NgModule) {
+export function NgModule(info: NgModule): ClassDecorator {
     return function<T>(constructor: Type<T>): void {
         const mod = module(info.id, (info.imports || []).map(getModuleName));
 
@@ -632,7 +632,7 @@ module("ng").decorator("$injector", ["$delegate", function(injector/*: angular.a
     };
 
     // instantiate<T>(typeConstructor: Function, locals?: any): T;
-    injector.instantiate = function diInstantiateWrapper(typeConstructor: Function, locals: any) {
+    injector.instantiate = function diInstantiateWrapper<T>(typeConstructor: Function, locals: any): T {
         return instantiate.call(this, injectMethod(typeConstructor), locals);
     };
 
