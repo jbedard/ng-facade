@@ -1047,7 +1047,7 @@ describe("facade", function() {
 
                 expect(foo).not.toHaveBeenCalled();
                 $dom.triggerHandler("asdf");
-                expect(foo).toHaveBeenCalledWith(1,2,null);
+                expect(foo).toHaveBeenCalledWith(1, 2, null);
             });
 
             it("should support the $event argument in @HostListener('asdf', ['$event'])", function() {
