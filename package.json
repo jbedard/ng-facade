@@ -23,6 +23,7 @@
   "devDependencies": {
     "@types/angular": "^1.6",
     "@types/jasmine": "^2.5",
+    "conventional-changelog-cli": "^1.2",
     "istanbul": "^0.4",
     "jasmine": "^2.5",
     "jasmine-core": "^2.5",
@@ -43,6 +44,7 @@
     "build": "tsc",
     "test": "karma start karma.conf.js --single-run",
     "test-server": "karma start karma.conf.js",
-    "lint": "tslint -c ./tslint.json --type-check --project ./tsconfig.json ./src/*.ts"
+    "lint": "tslint -c ./tslint.json --type-check --project ./tsconfig.json ./src/*.ts",
+    "changelog": "conventional-changelog --infile ./CHANGELOG.md --same-file --release-count 1 --preset angular"
   }
 }
