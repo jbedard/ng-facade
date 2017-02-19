@@ -5,7 +5,7 @@
  */
 
 import "reflect-metadata";
-import {module, noop, extend} from "angular";
+import {module, noop} from "angular";
 
 /* TODO...
     - component lifecycle interfaces: https://angular.io/docs/ts/latest/guide/lifecycle-hooks.html ?
@@ -179,7 +179,12 @@ function setupComponent(mod: angular.IModule, ctrl: Type<any>, decl: Component):
     });
 
     //@Require()s + reference to self
-    const require = extend({[COMPONENT_SELF_BINDING]: decl.selector}, (<any>ctrl).$$require || {});
+    const require = {[COMPONENT_SELF_BINDING]: dashToCamel(decl.selector)};
+    if ((<any>ctrl).$$require) {
+        for (const key in (<any>ctrl).$$require) {
+            require[key] = dashToCamel((<any>ctrl).$$require[key]);
+        }
+    }
 
     //Simplified component -> directive mapping similar to
     // https://github.com/angular/angular.js/blob/v1.6.2/src/ng/compile.js#L1227
@@ -206,7 +211,6 @@ function setupDirective(mod: angular.IModule, ctrl: Type<any>, decl: Directive):
     //Element vs attribute
     //AngularJS does not support complex selectors
     //Angular does not support comments
-    //this library does not support class
     let name = decl.selector;
     let restrict = "E";
     if (name[0] === "[" && name[name.length - 1] === "]") {
@@ -229,7 +233,7 @@ function setupDirective(mod: angular.IModule, ctrl: Type<any>, decl: Directive):
     }
 
     //reference to self
-    const require = {[COMPONENT_SELF_BINDING]: name};
+    const require = {[COMPONENT_SELF_BINDING]: dashToCamel(name)};
 
     mod.directive(dashToCamel(name), ["$injector", function($injector): angular.IDirective {
         return {
@@ -339,7 +343,7 @@ function createInputDecorator(type: string) {
         return function(targetPrototype: Object, propertyKey: string): void {
             addBinding(targetPrototype, {
                 name: propertyKey,
-                publicName,
+                publicName: publicName && dashToCamel(publicName),
                 type
             });
         };
@@ -393,7 +397,7 @@ export function Output(publicName?: string): PropertyDecorator {
 
         addBinding(targetPrototype, {
             name: internalCallback,
-            publicName: publicName || propertyKey,
+            publicName: publicName && dashToCamel(publicName) || propertyKey,
             type: "&"
         });
 

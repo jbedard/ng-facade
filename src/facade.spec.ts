@@ -45,6 +45,17 @@ describe("facade", function() {
         return {$scope, $dom, $injector, $rootScope};
     }
 
+    function expectDirectiveDefinitionCall(spies, nameExpectation, definitionExpectation) {
+        expect(spies.directive).toHaveBeenCalled();
+
+        const [name, factory] = spies.directive.calls.mostRecent().args;
+
+        expect(name).toEqual(nameExpectation);
+        expect(factory.length).toBe(2);
+        expect(factory[0]).toBe("$injector");
+        expect(factory[1]()).toEqual(definitionExpectation);
+    }
+
     function createMockModule() {
         const mockModule = {
             name: undefined,
@@ -533,15 +544,6 @@ describe("facade", function() {
     });
 
     describe("@Component", function() {
-        function expectDirectiveDefinitionCall(spies, nameExpectation, definitionExpectation) {
-            expect(spies.directive).toHaveBeenCalled();
-
-            const [name, factory] = spies.directive.calls.mostRecent().args;
-
-            expect(name).toEqual(nameExpectation);
-            expect(factory[factory.length - 1]()).toEqual(definitionExpectation);
-        }
-
         it("should delegate @Component() in @NgModule{declarations} to module.directive", function() {
             const spies = createMockModule();
 
@@ -573,6 +575,24 @@ describe("facade", function() {
                 scope: {},
                 bindToController: {},
                 restrict: "E"
+            }));
+        });
+
+        it("should convert dash-cased name to module.directive camelCased", function() {
+            const spies = createMockModule();
+
+            @Component({
+                selector: "comp-selector"
+            })
+            class Comp {}
+
+            @NgModule({id: "compMod", declarations: [Comp]})
+            class Mod {}
+
+            expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({
+                require: {
+                    "$$self": "compSelector"
+                }
             }));
         });
 
@@ -609,6 +629,26 @@ describe("facade", function() {
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({bindToController: {inputName: "<?altName"}, controller: Comp}));
+            });
+
+            it("should convert @Input('dash-cased') fields to module.directive aliased <? bindToController", function() {
+                const spies = createMockModule();
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @Input("dash-cased")
+                    public inputName;
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
+                    bindToController: {inputName: "<?dashCased"},
+                    controller: Comp
+                }));
             });
 
             it("should convert @InputString() fields to module.directive @? bindToController", function() {
@@ -663,6 +703,26 @@ describe("facade", function() {
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
                     bindToController: {[OUTPUT_BOUND_CALLBACK_PREFIX + "outputName"]: "&?outputName"},
+                    controller: Comp
+                }));
+            });
+
+            it("should convert @Output('dash-cased') fields to module.directive aliased &? bindToController", function() {
+                const spies = createMockModule();
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @Output("dash-cased")
+                    public outputName: EventEmitter<any> = new EventEmitter();
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
+                    bindToController: {[OUTPUT_BOUND_CALLBACK_PREFIX + "outputName"]: "&?dashCased"},
                     controller: Comp
                 }));
             });
@@ -737,6 +797,70 @@ describe("facade", function() {
                 const foo = jasmine.createSpy("callback");
 
                 bootstrapAndCompile("compMod", "<comp output-name='foo()'>", {foo});
+
+                expect(instance).toEqual(jasmine.any(Comp));
+
+                instance.fire();
+                expect(foo).toHaveBeenCalled();
+            });
+
+            it("should invoke binding expressions when @Output('dash-cased') is used", function() {
+                let instance: Comp;
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @Output("dash-cased")
+                    public outputName: EventEmitter<any> = new EventEmitter();
+
+                    constructor() {
+                        instance = this;
+                    }
+
+                    fire() {
+                        this.outputName.emit();
+                    }
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                const foo = jasmine.createSpy("callback");
+
+                bootstrapAndCompile("compMod", "<comp dash-cased='foo()'>", {foo});
+
+                expect(instance).toEqual(jasmine.any(Comp));
+
+                instance.fire();
+                expect(foo).toHaveBeenCalled();
+            });
+
+            it("should invoke binding expressions when @Output('camelCased') is used", function() {
+                let instance: Comp;
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @Output("camelCased")
+                    public outputName: EventEmitter<any> = new EventEmitter();
+
+                    constructor() {
+                        instance = this;
+                    }
+
+                    fire() {
+                        this.outputName.emit();
+                    }
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                const foo = jasmine.createSpy("callback");
+
+                bootstrapAndCompile("compMod", "<comp camel-cased='foo()'>", {foo});
 
                 expect(instance).toEqual(jasmine.any(Comp));
 
@@ -932,14 +1056,14 @@ describe("facade", function() {
                 }));
             });
 
-            it("should convert @Require('publicName') fields to module.directive require", function() {
+            it("should convert @Require('name') fields to module.directive require", function() {
                 const spies = createMockModule();
 
                 @Component({
                     selector: "comp"
                 })
                 class Comp {
-                    @Require("publicName")
+                    @Require("name")
                     public requirement;
                 }
 
@@ -947,19 +1071,19 @@ describe("facade", function() {
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
-                    require: jasmine.objectContaining({requirement: "publicName"}),
+                    require: jasmine.objectContaining({requirement: "name"}),
                     controller: Comp
                 }));
             });
 
-            it("should convert @Require('^^publicName') fields to module.directive require", function() {
+            it("should convert @Require('^^name') fields to module.directive require", function() {
                 const spies = createMockModule();
 
                 @Component({
                     selector: "comp"
                 })
                 class Comp {
-                    @Require("^^publicName")
+                    @Require("^^name")
                     public requirement;
                 }
 
@@ -967,9 +1091,135 @@ describe("facade", function() {
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
-                    require: jasmine.objectContaining({requirement: "^^publicName"}),
+                    require: jasmine.objectContaining({requirement: "^^name"}),
                     controller: Comp
                 }));
+            });
+
+            it("should convert @Require('dash-cased') fields to camelCased module.directive require", function() {
+                const spies = createMockModule();
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @Require("dash-cased")
+                    public requirement;
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
+                    require: jasmine.objectContaining({requirement: "dashCased"}),
+                    controller: Comp
+                }));
+            });
+
+            it("should convert @Require('^dash-cased') fields to camelCased module.directive require", function() {
+                const spies = createMockModule();
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @Require("^dash-cased")
+                    public requirement;
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
+                    require: jasmine.objectContaining({requirement: "^dashCased"}),
+                    controller: Comp
+                }));
+            });
+
+            it("should convert @Require()camelCased fields to camelCased mmodule.directive require", function() {
+                const spies = createMockModule();
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @Require()
+                    public camelCased;
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
+                    require: jasmine.objectContaining({camelCased: "camelCased"}),
+                    controller: Comp
+                }));
+            });
+
+            it("should setup @Require() on compilation", function() {
+                let instance: Comp;
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @Require()
+                    public ngModel;
+
+                    constructor() { instance = this; }
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                bootstrapAndCompile("compMod", "<comp ng-model='bar'>");
+
+                expect(instance).toEqual(jasmine.any(Comp));
+                expect(instance.ngModel).toBeDefined();
+            });
+
+            it("should setup @Require('camelCased') on compilation", function() {
+                let instance: Comp;
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @Require("ngModel")
+                    public foo;
+
+                    constructor() { instance = this; }
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                bootstrapAndCompile("compMod", "<comp ng-model='bar'>");
+
+                expect(instance).toEqual(jasmine.any(Comp));
+                expect(instance.foo).toBeDefined();
+            });
+
+            it("should setup @Require('dash-cased') on compilation", function() {
+                let instance: Comp;
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @Require("ng-model")
+                    public foo;
+
+                    constructor() { instance = this; }
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                bootstrapAndCompile("compMod", "<comp ng-model='bar'>");
+
+                expect(instance).toEqual(jasmine.any(Comp));
+                expect(instance.foo).toBeDefined();
             });
         });
 
@@ -1182,6 +1432,63 @@ describe("facade", function() {
 
             expect(name).toBe("clsSelector");
             expect(factory()).toEqual(jasmine.objectContaining({restrict: "C", controller: Dir}));
+        });
+
+        it("should convert dash-cased element name to module.directive camelCased", function() {
+            const spies = createMockModule();
+
+            @Directive({
+                selector: "comp-selector"
+            })
+            class Dir {}
+
+            @NgModule({id: "compMod", declarations: [Dir]})
+            class Mod {}
+
+            expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({
+                restrict: "E",
+                require: {
+                    "$$self": "compSelector"
+                }
+            }));
+        });
+
+        it("should convert .dash-cased class name to module.directive camelCased", function() {
+            const spies = createMockModule();
+
+            @Directive({
+                selector: ".comp-selector"
+            })
+            class Dir {}
+
+            @NgModule({id: "compMod", declarations: [Dir]})
+            class Mod {}
+
+            expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({
+                restrict: "C",
+                require: {
+                    "$$self": "compSelector"
+                }
+            }));
+        });
+
+        it("should convert [dash-cased] attribute name to module.directive camelCased", function() {
+            const spies = createMockModule();
+
+            @Directive({
+                selector: "[comp-selector]"
+            })
+            class Dir {}
+
+            @NgModule({id: "compMod", declarations: [Dir]})
+            class Mod {}
+
+            expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({
+                restrict: "A",
+                require: {
+                    "$$self": "compSelector"
+                }
+            }));
         });
 
         describe("unsupported", function() {
