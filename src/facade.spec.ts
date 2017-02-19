@@ -2,7 +2,7 @@ import "jasmine";
 import "tslib";
 import * as angular from "angular";
 
-import {Inject, Injectable, PipeTransform, Pipe, Input, InputString, InputCallback, Output, EventEmitter, Require, Directive, Component, NgModule} from "./facade";
+import {Inject, Injectable, PipeTransform, Pipe, Input, InputString, InputCallback, Output, EventEmitter, Require, Directive, Component, HostListener, NgModule} from "./facade";
 
 //Copied from facade.ts to avoid exposing publicly
 const OUTPUT_BOUND_CALLBACK_PREFIX = "__event_";
@@ -990,6 +990,153 @@ describe("facade", function() {
                     require: jasmine.objectContaining({requirement: "^^publicName"}),
                     controller: Comp
                 }));
+            });
+        });
+
+        describe("@HostListener", function() {
+            it("should bind @HostListener('asdf') to the DOM 'asdf' event", function() {
+                const foo = jasmine.createSpy("foo event callback");
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @HostListener("asdf")
+                    adsf() {
+                        foo.apply(this, arguments);
+                    }
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                const {$dom} = bootstrapAndCompile("compMod", "<comp>");
+
+                expect(foo).not.toHaveBeenCalled();
+                $dom.triggerHandler("asdf");
+                expect(foo).toHaveBeenCalled();
+            });
+
+            it("should bind multiple @HostListener('asdf')s to the DOM 'asdf' event", function() {
+                const foo = jasmine.createSpy("foo event callback");
+                const bar = jasmine.createSpy("bar event callback");
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @HostListener("asdf")
+                    foo() {
+                        foo.apply(this, arguments);
+                    }
+                    @HostListener("asdf")
+                    bar() {
+                        bar.apply(this, arguments);
+                    }
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                const {$dom} = bootstrapAndCompile("compMod", "<comp>");
+
+                expect(foo).not.toHaveBeenCalled();
+                expect(bar).not.toHaveBeenCalled();
+                $dom.triggerHandler("asdf");
+                expect(foo).toHaveBeenCalled();
+                expect(bar).toHaveBeenCalled();
+            });
+
+            it("should pass arguments specified in @HostListener('asdf', [...args])", function() {
+                const foo = jasmine.createSpy("foo event callback");
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @HostListener("asdf", ["1", "2", "null"])
+                    adsf() {
+                        foo.apply(this, arguments);
+                    }
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                const {$dom} = bootstrapAndCompile("compMod", "<comp>");
+
+                expect(foo).not.toHaveBeenCalled();
+                $dom.triggerHandler("asdf");
+                expect(foo).toHaveBeenCalledWith(1,2,null);
+            });
+
+            it("should support the $event argument in @HostListener('asdf', ['$event'])", function() {
+                const foo = jasmine.createSpy("foo event callback");
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @HostListener("asdf", ["$event"])
+                    adsf() {
+                        foo.apply(this, arguments);
+                    }
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                const {$dom} = bootstrapAndCompile("compMod", "<comp>");
+
+                expect(foo).not.toHaveBeenCalled();
+                $dom.triggerHandler("asdf");
+                expect(foo).toHaveBeenCalledWith(jasmine.objectContaining({type: "asdf", target: $dom[0]}));
+            });
+
+            it("should support expressions in @HostListener args)", function() {
+                const foo = jasmine.createSpy("foo event callback");
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @HostListener("asdf", ["$event.target", "1+2"])
+                    adsf() {
+                        foo.apply(this, arguments);
+                    }
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                const {$dom} = bootstrapAndCompile("compMod", "<comp>");
+
+                expect(foo).not.toHaveBeenCalled();
+                $dom.triggerHandler("asdf");
+                expect(foo).toHaveBeenCalledWith($dom[0], 3);
+            });
+
+            it("should not provide access to values on the $scope", function() {
+                const foo = jasmine.createSpy("foo event callback");
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    @HostListener("asdf", ["$root", "$id", "$ctrl"])
+                    adsf() {
+                        foo.apply(this, arguments);
+                    }
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                const {$dom} = bootstrapAndCompile("compMod", "<comp>");
+
+                expect(foo).not.toHaveBeenCalled();
+                $dom.triggerHandler("asdf");
+                expect(foo).toHaveBeenCalledWith(undefined, undefined, undefined);
             });
         });
     });

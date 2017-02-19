@@ -11,7 +11,6 @@ import {module, noop, extend} from "angular";
     - component lifecycle interfaces: https://angular.io/docs/ts/latest/guide/lifecycle-hooks.html ?
     - @Optional, @Self, @SkipSelf, @Host
     - @ViewChild ?
-    - @HostListener ? (https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/metadata/directives.ts#L1005)
     - ElementRef ? (https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/linker/element_ref.ts#L24)
 */
 
@@ -400,6 +399,34 @@ export class EventEmitter<T> {
     public emit(value?: T): void {
         throw new Error("Uninitialized EventEmitter");
     }
+}
+
+
+/**
+ * @HostListener
+ *
+ * Bind a DOM event to the host element.
+ *
+ * https://angular.io/docs/ts/latest/api/core/index/HostListener-interface.html
+ */
+//https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/metadata/directives.ts#L1005-L1017
+export function HostListener(eventType: string, args: string[] = []): MethodDecorator {
+    return function(targetPrototype: Object, propertyKey: string): void {
+        function HostListenerSetup($element: JQuery, $parse: angular.IParseService, $injector: angular.auto.IInjectorService) {
+            //Parse the listener arguments on component initialization
+            const argExps = args.map((s) => $parse(s));
+
+            $element.on(eventType, ($event) => {
+                //Invoke each argument expression using only the $event local
+                const argValues = argExps.map((argExp) => argExp({$event}));
+
+                this[propertyKey](...argValues);
+            });
+        }
+        HostListenerSetup.$inject = ["$element", "$parse", "$injector"];
+
+        addPreLink(targetPrototype, HostListenerSetup);
+    };
 }
 
 
