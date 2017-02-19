@@ -199,26 +199,6 @@ describe("facade", function() {
             expect($injector.get(Foo)).toEqual(jasmine.any(Bar));
         });
 
-        it("should throw for provider.multi", function() {
-            expect(function() {
-                @NgModule({
-                    id: "multiMod", providers: [{multi: true}]
-                })
-                class Mod {}
-            })
-            .toThrowError("Provider.multi unsupported");
-        });
-
-        it("should throw for unsupported provider types", function() {
-            expect(function() {
-                @NgModule({
-                    id: "badProviderMod", providers: ["arr"]
-                })
-                class Mod {}
-            })
-            .toThrow();
-        });
-
         it("should throw for unsupported declaration types", function() {
             expect(function() {
                 @NgModule({

@@ -18,6 +18,7 @@ import {module, noop, extend} from "angular";
 function valueFn(v) { return function() { return v; }; };
 
 
+//https://github.com/angular/angular/blob/2.4.8/modules/%40angular/core/src/type.ts
 const Type = Function;
 export interface Type<T> extends Function { new (...args: any[]): T; }
 
@@ -98,48 +99,55 @@ function injectMethod<T extends Injectable<any>>(method: T) {
     return method;
 }
 
-function setupProvider(mod: angular.IModule, provider/*: Provider | PipeTransform*/): void {
-    if (provider.multi) {
-        throw new Error("Provider.multi unsupported");
-    }
 
+function isPipeTransform(o: any): o is PipeTransform {
+    return "$$pipe" in o;
+}
+function isExistingProvider(o: Provider): o is ExistingProvider {
+    return "useExisting" in o;
+}
+function isFactoryProvider(o: Provider): o is FactoryProvider  {
+    return "useFactory" in o;
+}
+function isClassProvider(o: Provider): o is ClassProvider {
+    return "useClass" in o;
+}
+
+function setupProvider(mod: angular.IModule, provider: Provider): void {
     //Provider type detection similar to:
     // https://github.com/angular/angular/blob/2.4.4/modules/%40angular/core/src/di/reflective_provider.ts#L103
     // +
     // https://github.com/angular/angular/blob/2.4.4/modules/%40angular/core/src/di/reflective_provider.ts#L181
 
     //PipeTransform
-    if (provider.$$pipe) {
-        mod.filter(provider.$$pipe.name, ["$injector", function($injector) {
+    if (isPipeTransform(provider)) {
+        const pipeInfo: Pipe = (<any>provider).$$pipe;
+        mod.filter(pipeInfo.name, ["$injector", function($injector) {
             const pipe = $injector.instantiate(provider);
             const transform = pipe.transform.bind(pipe);
-            transform.$stateful = (false === provider.$$pipe.pure);
+            transform.$stateful = (false === pipeInfo.pure);
             return transform;
         }]);
     }
     //ExistingProvider
-    else if (provider.useExisting) {
+    else if (isExistingProvider(provider)) {
         const existingName = provider.useExisting;
         mod.factory(getTypeName(provider.provide), ["$injector", function($injector) {
             return $injector.get(existingName);
         }]);
     }
     //FactoryProvider
-    else if (provider.useFactory) {
+    else if (isFactoryProvider(provider)) {
         mod.factory(getTypeName(provider.provide), provider.useFactory);
     }
     //ClassProvider
-    else if (provider.useClass) {
+    else if (isClassProvider(provider)) {
         setupProvider(mod, provider.useClass);
         setupProvider(mod, {provide: provider.provide, useExisting: provider.useClass});
     }
     //TypeProvider
-    else if (provider instanceof Type) {
-        mod.service(getTypeName(provider), provider);
-    }
-    //any[], ...
-    else {
-        throw new Error(`Unsupported provider: ${typeof provider}`);
+    else /*if (provider instanceof Type)*/ {
+        mod.service(getTypeName(provider), <TypeProvider>provider);
     }
 }
 
@@ -527,6 +535,32 @@ export function Component(info: Component): ClassDecorator {
 }
 
 
+//https://github.com/angular/angular/blob/2.4.8/modules/%40angular/core/src/di/provider.ts
+export interface TypeProvider extends Type<any> {}
+export interface ValueProvider {
+  provide: any;
+  useValue: any;
+  // multi?: boolean;
+}
+export interface ClassProvider {
+  provide: any;
+  useClass: Type<any>;
+  // multi?: boolean;
+}
+export interface ExistingProvider {
+  provide: any;
+  useExisting: any;
+  // multi?: boolean;
+}
+export interface FactoryProvider {
+  provide: any;
+  useFactory: Function;
+  // deps?: any[];
+  // multi?: boolean;
+}
+export type Provider = TypeProvider | ValueProvider | ClassProvider | ExistingProvider | FactoryProvider/* | any[]*/;
+
+
 /**
  * A subset of the @NgModule interface
  */
@@ -534,8 +568,8 @@ export function Component(info: Component): ClassDecorator {
 export interface NgModule {
     id: string;
 
-    providers?: /*Provider*/any[];
-    declarations?: Array<Type<any>|any[]>;
+    providers?: Provider[];
+    declarations?: Array<Type<any>/*|any[]*/>;
     imports?: Array<angular.IModule|Type<any>|string>;
 
     //NOT SUPPORTED...
