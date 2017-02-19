@@ -178,7 +178,7 @@ function setupComponent(mod: angular.IModule, ctrl: Type<any>, decl: Component):
         bindings[input.name] = input.type + "?" + (input.publicName || "");
     });
 
-    //@Require()s
+    //@Require()s + reference to self
     const require = extend({[COMPONENT_SELF_BINDING]: decl.selector}, (<any>ctrl).$$require || {});
 
     //Simplified component -> directive mapping similar to
@@ -220,17 +220,22 @@ function setupDirective(mod: angular.IModule, ctrl: Type<any>, decl: Directive):
 
     //TODO: inputs on Directive which has no isolated scope?
     if ((<any>ctrl).$$inputs) {
-        throw new Error("Directive inputs unsupported");
+        throw new Error("Directive input unsupported");
     }
 
-    mod.directive(dashToCamel(name), function(): angular.IDirective {
+    //reference to self
+    const require = {[COMPONENT_SELF_BINDING]: name};
+
+    mod.directive(dashToCamel(name), ["$injector", function($injector): angular.IDirective {
         return {
             restrict,
-            controller: ctrl
+            controller: ctrl,
+            require,
 
-            //TODO: invoke ctrl $onInit in link?
+            //Create a compile function to do setup
+            compile: createCompileFunction(ctrl, $injector)
         };
-    });
+    }]);
 }
 
 function setupDeclaration(mod: angular.IModule, decl): void {

@@ -1125,11 +1125,11 @@ describe("facade", function() {
         function getMockedDirective(spies) {
             expect(spies.directive).toHaveBeenCalled();
 
-            const args = spies.directive.calls.mostRecent().args;
+            const [name, factory] = spies.directive.calls.mostRecent().args;
 
             return {
-                name: args[0],
-                factory: args[1]
+                name,
+                factory: factory[factory.length - 1]
             };
         }
 
@@ -1197,7 +1197,32 @@ describe("facade", function() {
                     @NgModule({id: "compMod", declarations: [Dir]})
                     class Mod {}
                 })
-                .toThrow();
+                .toThrowError("Directive input unsupported");
+            });
+        });
+
+        describe("@HostListener", function() {
+            it("should bind @HostListener('asdf') to the DOM 'asdf' event", function() {
+                const foo = jasmine.createSpy("foo event callback");
+
+                @Directive({
+                    selector: "comp"
+                })
+                class Comp {
+                    @HostListener("asdf")
+                    adsf() {
+                        foo.apply(this, arguments);
+                    }
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                const {$dom} = bootstrapAndCompile("compMod", "<comp>");
+
+                expect(foo).not.toHaveBeenCalled();
+                $dom.triggerHandler("asdf");
+                expect(foo).toHaveBeenCalled();
             });
         });
     });
