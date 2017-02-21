@@ -591,7 +591,7 @@ describe("facade", function() {
 
             expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({
                 require: {
-                    "$$self": "compSelector"
+                    $$self: "compSelector"
                 }
             }));
         });
@@ -1448,7 +1448,7 @@ describe("facade", function() {
             expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({
                 restrict: "E",
                 require: {
-                    "$$self": "compSelector"
+                    $$self: "compSelector"
                 }
             }));
         });
@@ -1467,7 +1467,7 @@ describe("facade", function() {
             expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({
                 restrict: "C",
                 require: {
-                    "$$self": "compSelector"
+                    $$self: "compSelector"
                 }
             }));
         });
@@ -1486,7 +1486,7 @@ describe("facade", function() {
             expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({
                 restrict: "A",
                 require: {
-                    "$$self": "compSelector"
+                    $$self: "compSelector"
                 }
             }));
         });
