@@ -1277,6 +1277,61 @@ describe("facade", function() {
                 expect(bar).toHaveBeenCalled();
             });
 
+            it("should invoke the expression within a digest", function() {
+                const foo = jasmine.createSpy("foo event callback");
+
+                let phase;
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    constructor(@Inject("$rootScope") public $rootScope) {}
+
+                    @HostListener("asdf")
+                    adsf() {
+                        phase = this.$rootScope.$$phase;
+                    }
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                const {$dom} = bootstrapAndCompile("compMod", "<comp>");
+
+                expect(phase).toBeUndefined();
+                $dom.triggerHandler("asdf");
+                expect(phase).toBe("$apply");
+            });
+
+            it("should support DOM events triggered while already in a digest", function() {
+                const foo = jasmine.createSpy("foo event callback");
+
+                @Component({
+                    selector: "comp"
+                })
+                class Comp {
+                    constructor(@Inject("$element") private $element) {}
+                    @HostListener("asdf")
+                    adsf() {
+                        foo.apply(this, arguments);
+                    }
+
+                    @HostListener("first")
+                    first() {
+                        this.$element.triggerHandler("asdf");
+                    }
+                }
+
+                @NgModule({id: "compMod", declarations: [Comp]})
+                class Mod {}
+
+                const {$dom} = bootstrapAndCompile("compMod", "<comp>");
+
+                expect(foo).not.toHaveBeenCalled();
+                $dom.triggerHandler("first");
+                expect(foo).toHaveBeenCalled();
+            });
+
             it("should pass arguments specified in @HostListener('asdf', [...args])", function() {
                 const foo = jasmine.createSpy("foo event callback");
 

@@ -434,18 +434,24 @@ export class EventEmitter<T> {
 //https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/metadata/directives.ts#L1005-L1017
 export function HostListener(eventType: string, args: string[] = []): MethodDecorator {
     return function(targetPrototype: Object, propertyKey: string): void {
-        function HostListenerSetup($element: JQuery, $parse: angular.IParseService, $injector: angular.auto.IInjectorService): void {
+        function HostListenerSetup($element: JQuery, $parse: angular.IParseService, $rootScope: angular.IScope): void {
             //Parse the listener arguments on component initialization
             const argExps = args.map((s) => $parse(s));
 
-            $element.on(eventType, ($event) => {
-                //Invoke each argument expression using only the $event local
+            $element.on(eventType, ($event: BaseJQueryEventObject) => {
+                //Invoke each argument expression specifying the $event local
                 const argValues = argExps.map((argExp) => argExp({$event}));
+                const invokeListener = () => this[propertyKey](...argValues);
 
-                this[propertyKey](...argValues);
+                if (!$rootScope.$$phase) {
+                    $rootScope.$apply(invokeListener);
+                }
+                else {
+                    invokeListener();
+                }
             });
         }
-        HostListenerSetup.$inject = ["$element", "$parse", "$injector"];
+        HostListenerSetup.$inject = ["$element", "$parse", "$rootScope"];
 
         addPreLink(targetPrototype, HostListenerSetup);
     };
