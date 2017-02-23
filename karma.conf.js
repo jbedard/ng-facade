@@ -41,7 +41,7 @@ module.exports = function(config) {
 
         reportSlowerThan: 100,
 
-        browsers: config.browsers.length ? config.browsers : ["Chrome"],
+        browsers: config.browsers.length ? config.browsers : ["PhantomJS"],
 
         captureTimeout: 60000,
         browserNoActivityTimeout: 60000
