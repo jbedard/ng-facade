@@ -56,7 +56,7 @@ describe("facade", function() {
         expect(factory[1]()).toEqual(definitionExpectation);
     }
 
-    function createMockModule() {
+    function createMockModule(): {module: angular.IModule & jasmine.Spy} & angular.IModule {
         const mockModule = {
             name: undefined,
             run: jasmine.createSpy("run"),
@@ -142,6 +142,7 @@ describe("facade", function() {
             })
             class FooMod {}
 
+            expect(spies.module.calls.count()).toBe(2);
             expect(spies.module).toHaveBeenCalledWith("mydep", []);
             expect(spies.module).toHaveBeenCalledWith("foo", ["mydep"]);
         });
@@ -157,7 +158,7 @@ describe("facade", function() {
             })
             class Mod {}
 
-            expect(spies.service).toHaveBeenCalledWith((<any>Foo).$$name, Foo);
+            expect(spies.service).toHaveBeenCalledWith(jasmine.any(String), Foo);
         });
 
         it("should support providers with useFactory factory", function() {

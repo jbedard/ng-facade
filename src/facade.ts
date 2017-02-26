@@ -26,20 +26,50 @@ export interface Type<T> extends Function { new (...args: any[]): T; }
 type Injectable<T extends Function> = T | Array<string | T>;
 
 
-let tid = 0;
-function getTypeName(type): string {
-    if (type.$$injectable) {
-        type = type.$$name || (type.$$name = type.name + (window["angular"].mock ? "" : `_${tid++}`));
+//For internal data, could be swapped for map-like structures
+const hasMeta = Reflect.hasOwnMetadata;
+const setMeta = Reflect.defineMetadata;
+const getMeta = Reflect.getOwnMetadata;
+
+function getOrSetMeta(metadataKey: string, metadataValue: any, target: Object) {
+    let v = getMeta(metadataKey, target);
+    if (undefined === v) {
+        setMeta(metadataKey, v = metadataValue, target);
+    }
+    return v;
+}
+
+//Internal data keys
+const META_COMPONENT  = "@Component";
+const META_DIRECTIVE  = "@Directive";
+const META_INJECTABLE = "@Injectable";
+const META_INPUTS     = "@Input";
+const META_MODULE     = "@NgModule";
+const META_PIPE       = "@Pipe";
+const META_PRE_LINK   = "preLink";
+const META_REQUIRE    = "@Require";
+
+function getTypeName(type: string | Type<any>): string {
+    if (typeof type !== "string") {
+        type = <string>getMeta(META_INJECTABLE, type);
     }
 
     return type;
 }
 
-function getModuleName(mod/*: string | angular.IModule | Type<any>*/): string {
-    return mod.$$module || mod.name || mod;
+function getModuleName(mod: string | angular.IModule | Type<any>): string {
+    if (typeof mod !== "string") {
+        if (hasMeta(META_MODULE, mod)) {
+            mod = (<NgModule>getMeta(META_MODULE, mod)).id;
+        }
+        else {
+            mod = (<angular.IModule>mod).name;
+        }
+    }
+    return mod;
 }
 
-function getInjectArray(target: Injectable<any>): any[] {
+function getInjectArray(target: Injectable<any>): Array<Injectable<any>> {
     return target.$inject || (target.$inject = <string[]>(target.$inject || []));
 }
 
@@ -90,7 +120,7 @@ function injectMethod<T extends Injectable<any>>(method: T) {
     if ($inject) {
         for (let i = 0; i < $inject.length; i++) {
             //Convert type => string for injection via types
-            if ($inject[i].$$injectable) {
+            if (typeof $inject[i] !== "string") {
                 $inject[i] = getTypeName($inject[i]);
             }
         }
@@ -100,8 +130,8 @@ function injectMethod<T extends Injectable<any>>(method: T) {
 }
 
 
-function isPipeTransform(o: any): o is PipeTransform & TypeProvider {
-    return "$$pipe" in o;
+function isPipeTransform(o: Provider): o is PipeTransform & TypeProvider {
+    return hasMeta(META_PIPE, o);
 }
 function isExistingProvider(o: Provider): o is ExistingProvider {
     return "useExisting" in o;
@@ -121,7 +151,7 @@ function setupProvider(mod: angular.IModule, provider: Provider): void {
 
     //PipeTransform
     if (isPipeTransform(provider)) {
-        const pipeInfo: Pipe = (<any>provider).$$pipe;
+        const pipeInfo: Pipe = getMeta(META_PIPE, provider);
         mod.filter(pipeInfo.name, ["$injector", function($injector: angular.auto.IInjectorService) {
             const pipe = $injector.instantiate<PipeTransform>(provider);
             const transform = pipe.transform.bind(pipe);
@@ -147,12 +177,12 @@ function setupProvider(mod: angular.IModule, provider: Provider): void {
     }
     //TypeProvider
     else /*if (provider instanceof Type)*/ {
-        mod.service(getTypeName(provider), <TypeProvider>provider);
+        mod.service(getTypeName(<Type<any>>provider), <TypeProvider>provider);
     }
 }
 
 function createCompileFunction(ctrl: Type<any>, $injector: angular.auto.IInjectorService): angular.IDirectiveCompileFn {
-    const pre: Array<Injectable<any>> = ctrl.prototype.$$preLink;
+    const pre: Array<Injectable<any>> = getMeta(META_PRE_LINK, ctrl.prototype);
 
     if (pre) {
         return valueFn({
@@ -167,23 +197,24 @@ function createCompileFunction(ctrl: Type<any>, $injector: angular.auto.IInjecto
 }
 
 function addPreLink(targetPrototype, fn: Injectable<any>): void {
-    (targetPrototype.$$preLink || (targetPrototype.$$preLink = [])).push(fn);
+    return getOrSetMeta(META_PRE_LINK, [], targetPrototype).push(fn);
 }
 
 function setupComponent(mod: angular.IModule, ctrl: Type<any>, decl: Component): void {
     const bindings = {};
 
     //@Input(Type)s
-    ((<any>ctrl).$$inputs || []).forEach(function(input: InternalBindingMetadata) {
+    (getMeta(META_INPUTS, ctrl) || []).forEach(function(input: InternalBindingMetadata) {
         bindings[input.name] = input.type + "?" + (input.publicName || "");
     });
 
-    //@Require()s + reference to self
+    //Reference to self
     const require = {[COMPONENT_SELF_BINDING]: dashToCamel(decl.selector)};
-    if ((<any>ctrl).$$require) {
-        for (const key in (<any>ctrl).$$require) {
-            require[key] = dashToCamel((<any>ctrl).$$require[key]);
-        }
+
+    //@Require()s
+    const required = getMeta(META_REQUIRE, ctrl);
+    for (const key in required) {
+        require[key] = dashToCamel(required[key]);
     }
 
     //Simplified component -> directive mapping similar to
@@ -223,12 +254,12 @@ function setupDirective(mod: angular.IModule, ctrl: Type<any>, decl: Directive):
     }
 
     //TODO: inputs on Directive which has no isolated scope?
-    if ((<any>ctrl).$$inputs) {
+    if (hasMeta(META_INPUTS, ctrl)) {
         throw new Error("Directive input unsupported");
     }
 
     //TODO: require on Directive which has no isolated scope?
-    if ((<any>ctrl).$$require) {
+    if (hasMeta(META_REQUIRE, ctrl)) {
         throw new Error("Directive require unsupported");
     }
 
@@ -247,12 +278,12 @@ function setupDirective(mod: angular.IModule, ctrl: Type<any>, decl: Directive):
     }]);
 }
 
-function setupDeclaration(mod: angular.IModule, decl): void {
-    if (decl.$$component) {
-        setupComponent(mod, decl, decl.$$component);
+function setupDeclaration(mod: angular.IModule, decl: Type<any>): void {
+    if (hasMeta(META_COMPONENT, decl)) {
+        setupComponent(mod, decl, getMeta(META_COMPONENT, decl));
     }
-    else if (decl.$$directive) {
-        setupDirective(mod, decl, decl.$$directive);
+    else if (hasMeta(META_DIRECTIVE, decl)) {
+        setupDirective(mod, decl, getMeta(META_DIRECTIVE, decl));
     }
     else {
         throw new Error(`Unknown declaration: ${decl}`);
@@ -260,6 +291,8 @@ function setupDeclaration(mod: angular.IModule, decl): void {
 }
 
 
+//A counter/uid for @Injectable string identifiers
+let tid = 0;
 
 /**
  * @Injectable()
@@ -271,7 +304,7 @@ function setupDeclaration(mod: angular.IModule, decl): void {
 //https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/di/metadata.ts#L146
 export function Injectable(): ClassDecorator {
     return function<T>(constructor: Type<T>): void {
-        (<any>constructor).$$injectable = true;
+        setMeta(META_INJECTABLE, (<any>constructor).name + (window["angular"].mock ? "" : `_${tid++}`), constructor);
     };
 }
 
@@ -321,7 +354,7 @@ export interface PipeTransform {
  */
 export function Pipe(info: Pipe): ClassDecorator {
     return function(constructor: PipeTransform): void {
-        (<any>constructor).$$pipe = info;
+        setMeta(META_PIPE, info, constructor);
     };
 }
 
@@ -333,9 +366,7 @@ interface InternalBindingMetadata {
 }
 
 function addBinding(targetPrototype: Object, data: InternalBindingMetadata): void {
-    const constructor = <any>targetPrototype.constructor;
-
-    (constructor.$$inputs || (constructor.$$inputs = [])).push(data);
+    getOrSetMeta(META_INPUTS, [], targetPrototype.constructor).push(data);
 }
 
 function createInputDecorator(type: string) {
@@ -469,7 +500,7 @@ export function Require(name?: string): PropertyDecorator {
     return function(targetPrototype: Object, propertyKey: string): void {
         const constructor = <any>targetPrototype.constructor;
 
-        (constructor.$$require || (constructor.$$require = {}))[propertyKey] = (name || "") + (needsName ? propertyKey : "");
+        getOrSetMeta(META_REQUIRE, {}, constructor)[propertyKey] = (name || "") + (needsName ? propertyKey : "");
     };
 }
 
@@ -501,7 +532,7 @@ export interface Directive {
  */
 export function Directive(info: Directive): ClassDecorator {
     return function<T>(constructor: Type<T>): void {
-        (<any>constructor).$$directive = info;
+        setMeta(META_DIRECTIVE, info, constructor);
     };
 }
 
@@ -550,7 +581,7 @@ export interface Component extends Directive {
  */
 export function Component(info: Component): ClassDecorator {
     return function<T>(constructor: Type<T>): void {
-        (<any>constructor).$$component = info;
+        setMeta(META_COMPONENT, info, constructor);
     };
 }
 
@@ -627,7 +658,7 @@ export function NgModule(info: NgModule): ClassDecorator {
         //TODO: create an instance?
         mod.run(constructor);
 
-        (<any>constructor).$$module = info.id;
+        setMeta(META_MODULE, info, constructor);
     };
 }
 
