@@ -47,6 +47,7 @@ const META_INPUTS     = "@Input";
 const META_MODULE     = "@NgModule";
 const META_PIPE       = "@Pipe";
 const META_PRE_LINK   = "preLink";
+const META_WATCHERS   = "watchers"
 const META_REQUIRE    = "@Require";
 
 function getTypeName(type: string | Type<any>): string {
@@ -200,6 +201,25 @@ function addPreLink(targetPrototype, fn: Injectable<any>): void {
     return getOrSetMeta(META_PRE_LINK, [], targetPrototype).push(fn);
 }
 
+function addFieldWatcher(targetPrototype, field: string, fn: Injectable<any>) {
+    const watchers = getOrSetMeta(META_WATCHERS, {}, targetPrototype);
+
+    if (!watchers[field]) {
+        const fieldWatchers = watchers[field] = [];
+
+        addPreLink(targetPrototype, ["$scope", "$element", "$injector", function($scope: angular.IScope, $element: JQuery, $injector: angular.auto.IInjectorService) {
+            $element.on("$destroy", $scope.$watch(
+                () => this[field],
+                (value) => {
+                    fieldWatchers.forEach((w) => $injector.invoke(w, null, {value}));
+                }
+            ));
+        }]);
+    }
+
+    watchers[field].push(fn);
+}
+
 function setupComponent(mod: angular.IModule, ctrl: Type<any>, decl: Component): void {
     const bindings = {};
 
@@ -266,7 +286,7 @@ function setupDirective(mod: angular.IModule, ctrl: Type<any>, decl: Directive):
     //reference to self
     const require = {[COMPONENT_SELF_BINDING]: dashToCamel(name)};
 
-    mod.directive(dashToCamel(name), ["$injector", function($injector): angular.IDirective {
+    mod.directive(dashToCamel(name), ["$injector", function($injector: angular.auto.IInjectorService): angular.IDirective {
         return {
             restrict,
             controller: ctrl,
@@ -485,6 +505,38 @@ export function HostListener(eventType: string, args: string[] = []): MethodDeco
         HostListenerSetup.$inject = ["$element", "$parse", "$rootScope"];
 
         addPreLink(targetPrototype, HostListenerSetup);
+    };
+}
+
+
+//https://github.com/angular/angular/blob/2.4.8/modules/%40angular/core/src/metadata/directives.ts#L946
+//https://angular.io/docs/ts/latest/api/core/index/HostBinding-interface.html
+export function HostBinding(binding: string): MethodDecorator {
+    const [all, type, what] = binding.match(/^(?:(attr|class|style)\.)?([a-zA-Z]+)$/);
+    if (!all) {
+        throw new Error(`Unknown HostBinding: ${binding}`);
+    }
+
+    const HOST_BINDING_TYPES = {
+        attr: ["$attrs", "value", function($attrs: angular.IAttributes, value) {
+            $attrs.$set(what, value);
+        }],
+
+        class: ["$element", "value", function($element: JQuery, value) {
+            $element.toggleClass(what, !!value);
+        }],
+
+        prop: ["$element", "value", function($element: JQuery, value) {
+            $element.prop(what, value);
+        }],
+
+        style: ["$element", "value", function($element: JQuery, value) {
+            $element.css(what, value);
+        }]
+    };
+
+    return function(targetPrototype: Object, propertyKey: string): void {
+        addFieldWatcher(targetPrototype, propertyKey, HOST_BINDING_TYPES[type || "prop"]);
     };
 }
 
