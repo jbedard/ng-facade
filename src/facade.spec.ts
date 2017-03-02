@@ -161,37 +161,118 @@ describe("facade", function() {
             expect(spies.service).toHaveBeenCalledWith(jasmine.any(String), Foo);
         });
 
-        it("should support providers with useFactory factory", function() {
-            @Injectable()
+        //NOTE: this may be stricter then Angular where @Injectable is optional
+        it("should throw if a plain-class provider is not marked as injectable", function() {
             class Foo {}
 
-            let theNewFoo;
-
             @NgModule({
-                id: "test", providers: [{provide: Foo, useFactory() { return theNewFoo = new Foo(); }}]
+                id: "test", providers: [Foo]
             })
             class Mod {}
 
-            const instance = bootstrapAndInitialize("test", Foo);
-
-            expect(instance).toBe(theNewFoo);
+            expect(function() {
+                bootstrapAndInitialize("test", Foo);
+            })
+            .toThrow();
         });
 
-        it("should support providers with useExisting reference", function() {
-            @Injectable()
-            class Foo {}
+        describe("useFactory", function() {
+            it("should invoke factory", function() {
+                class Foo {}
 
-            @Injectable()
-            class Bar {}
+                let theNewFoo;
 
-            @NgModule({
-                id: "test", providers: [Foo, {provide: Bar, useExisting: Foo}]
-            })
-            class Mod {}
+                @NgModule({
+                    id: "test", providers: [{provide: Foo, useFactory() { return theNewFoo = new Foo(); }}]
+                })
+                class Mod {}
 
-            const $injector = bootstrapAndInitialize("test", "$injector");
+                const instance = bootstrapAndInitialize("test", Foo);
 
-            expect($injector.get(Bar)).toBe($injector.get(Foo));
+                expect(instance).toBe(theNewFoo);
+                expect(instance).toEqual(jasmine.any(Foo));
+            });
+
+            it("should support any key object", function() {
+                const Foo = {};
+
+                @NgModule({
+                    id: "test", providers: [{provide: Foo, useFactory() { return 123; }}]
+                })
+                class Mod {}
+
+                const instance = bootstrapAndInitialize("test", Foo);
+
+                expect(instance).toBe(123);
+            });
+
+            it("should support injectable provider", function() {
+                @Injectable()
+                class Foo {}
+
+                let theNewFoo;
+
+                @NgModule({
+                    id: "test", providers: [{provide: Foo, useFactory() { return theNewFoo = new Foo(); }}]
+                })
+                class Mod {}
+
+                const instance = bootstrapAndInitialize("test", Foo);
+
+                expect(instance).toBe(theNewFoo);
+                expect(instance).toEqual(jasmine.any(Foo));
+            });
+        });
+
+        describe("useExisting", function() {
+            it("should reference existing injectable", function() {
+                @Injectable()
+                class Foo {}
+
+                @Injectable()
+                class Bar {}
+
+                @NgModule({
+                    id: "test", providers: [Foo, {provide: Bar, useExisting: Foo}]
+                })
+                class Mod {}
+
+                const $injector = bootstrapAndInitialize("test", "$injector");
+
+                expect($injector.get(Bar)).toBe($injector.get(Foo));
+            });
+
+            it("should support any key", function() {
+                @Injectable()
+                class Foo {}
+
+                const Bar = {};
+
+                @NgModule({
+                    id: "test", providers: [Foo, {provide: Bar, useExisting: Foo}]
+                })
+                class Mod {}
+
+                const $injector = bootstrapAndInitialize("test", "$injector");
+
+                expect($injector.get(Bar)).toBe($injector.get(Foo));
+            });
+
+            it("should throw if existing not found", function() {
+                class Foo {}
+
+                class Bar {}
+
+                @NgModule({
+                    id: "test", providers: [{provide: Foo, useExisting: Bar}]
+                })
+                class Mod {}
+
+                expect(function() {
+                    bootstrapAndInitialize("test", Foo);
+                })
+                .toThrow();
+            });
         });
 
         describe("useClass", function() {
@@ -229,6 +310,65 @@ describe("facade", function() {
                 expect($injector.get(Bar)).toEqual(jasmine.any(Bar));
                 expect($injector.get(Foo)).toEqual(jasmine.any(Bar));
                 expect($injector.get(Bar)).not.toBe($injector.get(Foo));
+            });
+
+            it("should support any key", function() {
+                const Foo = {};
+
+                class Bar {}
+
+                @NgModule({
+                    id: "test", providers: [{provide: Foo, useClass: Bar}]
+                })
+                class Mod {}
+
+                const $injector = bootstrapAndInitialize("test", "$injector");
+
+                expect($injector.get(Foo)).toEqual(jasmine.any(Bar));
+            });
+
+            it("should support injection into used class", function() {
+                @Injectable()
+                class Baz {};
+
+                class Foo {};
+
+                @Injectable()
+                class Bar extends Foo {
+                    constructor(public baz: Baz) { super(); }
+                }
+
+                @NgModule({
+                    id: "test", providers: [Baz, {provide: Foo, useClass: Bar}]
+                })
+                class Mod {}
+
+                const $injector = bootstrapAndInitialize("test", "$injector");
+
+                expect($injector.get(Foo)).toEqual(jasmine.any(Bar));
+                expect($injector.get(Foo).baz).toEqual(jasmine.any(Baz));
+            });
+
+            //NOTE: this may be stricter then Angular where @Injectable is optional
+            it("should throw when trying to inject into non-@Injectable useClass", function() {
+                @Injectable()
+                class Baz {};
+
+                class Foo {};
+
+                class Bar extends Foo {
+                    constructor(public baz: Baz) { super(); }
+                }
+
+                @NgModule({
+                    id: "test", providers: [Baz, {provide: Foo, useClass: Bar}]
+                })
+                class Mod {}
+
+                expect(function() {
+                    bootstrapAndInitialize("test", Bar);
+                })
+                .toThrow();
             });
         });
 
@@ -1668,8 +1808,8 @@ describe("facade", function() {
 
         const $injector = bootstrapAndInitialize("test", "$injector");
 
-        expect($injector.has("Service")).toBe(true);
-        expect($injector.has(Service)).toBe(true);
+        expect($injector.has("Service")).toBe(true, "has(string)");
+        expect($injector.has(Service)).toBe(true, "has(class)");
         expect($injector.get("Service")).toBe($injector.get(Service));
     });
 });

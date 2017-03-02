@@ -50,11 +50,22 @@ const META_PRE_LINK   = "preLink";
 const META_REQUIRE    = "@Require";
 
 function getTypeName(type: string | Type<any>): string {
-    if (typeof type !== "string") {
-        type = <string>getMeta(META_INJECTABLE, type);
+    if (typeof type === "string") {
+        return type;
     }
+    return <string>getMeta(META_INJECTABLE, type);
+}
 
-    return type;
+//A counter/uid for Object => string identifiers
+let tid = 0;
+
+function toTypeName(type: string | Type<any>): string {
+    let typeName = getTypeName(type);
+    if (!typeName) {
+        typeName = (<any>type).name + (window["angular"].mock ? "" : `_${tid++}`);
+        setMeta(META_INJECTABLE, typeName, type);
+    }
+    return typeName;
 }
 
 function getModuleName(mod: string | angular.IModule | Type<any>): string {
@@ -161,18 +172,18 @@ function setupProvider(mod: angular.IModule, provider: Provider): void {
     }
     //ExistingProvider
     else if (isExistingProvider(provider)) {
-        const existingName = provider.useExisting;
-        mod.factory(getTypeName(provider.provide), ["$injector", function($injector: angular.auto.IInjectorService) {
-            return $injector.get(existingName);
+        const existingProvider = provider.useExisting;
+        mod.factory(toTypeName(provider.provide), ["$injector", function($injector: angular.auto.IInjectorService) {
+            return $injector.get(existingProvider);
         }]);
     }
     //FactoryProvider
     else if (isFactoryProvider(provider)) {
-        mod.factory(getTypeName(provider.provide), provider.useFactory);
+        mod.factory(toTypeName(provider.provide), provider.useFactory);
     }
     //ClassProvider
     else if (isClassProvider(provider)) {
-        mod.service(getTypeName(provider.provide), provider.useClass);
+        mod.service(toTypeName(provider.provide), provider.useClass);
     }
     //TypeProvider
     else /*if (provider instanceof Type)*/ {
@@ -290,9 +301,6 @@ function setupDeclaration(mod: angular.IModule, decl: Type<any>): void {
 }
 
 
-//A counter/uid for @Injectable string identifiers
-let tid = 0;
-
 /**
  * @Injectable()
  *
@@ -303,7 +311,7 @@ let tid = 0;
 //https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/di/metadata.ts#L146
 export function Injectable(): ClassDecorator {
     return function<T>(constructor: Type<T>): void {
-        setMeta(META_INJECTABLE, (<any>constructor).name + (window["angular"].mock ? "" : `_${tid++}`), constructor);
+        toTypeName(constructor);
     };
 }
 
