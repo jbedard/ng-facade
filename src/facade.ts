@@ -5,7 +5,7 @@
  */
 
 import "reflect-metadata";
-import {module, noop} from "angular";
+import {extend, module, noop} from "angular";
 
 /* TODO...
     - component lifecycle interfaces: https://angular.io/docs/ts/latest/guide/lifecycle-hooks.html ?
@@ -179,7 +179,7 @@ function setupProvider(mod: angular.IModule, provider: Provider): void {
     }
     //FactoryProvider
     else if (isFactoryProvider(provider)) {
-        mod.factory(toTypeName(provider.provide), provider.useFactory);
+        mod.factory(toTypeName(provider.provide), extend(provider.useFactory, {$inject: provider.deps || []}));
     }
     //ClassProvider
     else if (isClassProvider(provider)) {
@@ -613,7 +613,7 @@ export interface ExistingProvider {
 export interface FactoryProvider {
   provide: any;
   useFactory: Function;
-  // deps?: any[];
+  deps?: any[];
   // multi?: boolean;
 }
 export type Provider = TypeProvider | ValueProvider | ClassProvider | ExistingProvider | FactoryProvider/* | any[]*/;

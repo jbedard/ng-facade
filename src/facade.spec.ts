@@ -222,6 +222,31 @@ describe("facade", function() {
                 expect(instance).toBe(theNewFoo);
                 expect(instance).toEqual(jasmine.any(Foo));
             });
+
+            it("should support deps to inject into factory method", function() {
+                @Injectable()
+                class Foo {}
+
+                class Bar {
+                    constructor(public a, public b) {}
+                }
+
+                @NgModule({
+                    id: "test",
+                    providers: [Foo, {
+                        provide: Bar,
+                        useFactory(a, b) { return new Bar(a, b); },
+                        deps: ["$rootScope", Foo]
+                    }]
+                })
+                class Mod {}
+
+                const instance = bootstrapAndInitialize("test", Bar);
+
+                expect(instance).toEqual(jasmine.any(Bar));
+                expect("$apply" in instance.a).toBe(true);
+                expect(instance.b).toEqual(jasmine.any(Foo));
+            });
         });
 
         describe("useExisting", function() {
