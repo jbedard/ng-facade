@@ -194,21 +194,42 @@ describe("facade", function() {
             expect($injector.get(Bar)).toBe($injector.get(Foo));
         });
 
-        it("should support providers with useClass reference", function() {
-            @Injectable()
-            class Foo {}
+        describe("useClass", function() {
+            it("should be supported", function() {
+                @Injectable()
+                class Foo {}
 
-            @Injectable()
-            class Bar extends Foo {}
+                @Injectable()
+                class Bar extends Foo {}
 
-            @NgModule({
-                id: "test", providers: [{provide: Foo, useClass: Bar}]
-            })
-            class Mod {}
+                @NgModule({
+                    id: "test", providers: [{provide: Foo, useClass: Bar}]
+                })
+                class Mod {}
 
-            const $injector = bootstrapAndInitialize("test", "$injector");
+                const $injector = bootstrapAndInitialize("test", "$injector");
 
-            expect($injector.get(Foo)).toEqual(jasmine.any(Bar));
+                expect($injector.get(Foo)).toEqual(jasmine.any(Bar));
+            });
+
+            it("should create a new instance", function() {
+                @Injectable()
+                class Foo {}
+
+                @Injectable()
+                class Bar extends Foo {}
+
+                @NgModule({
+                    id: "test", providers: [Bar, {provide: Foo, useClass: Bar}]
+                })
+                class Mod {}
+
+                const $injector = bootstrapAndInitialize("test", "$injector");
+
+                expect($injector.get(Bar)).toEqual(jasmine.any(Bar));
+                expect($injector.get(Foo)).toEqual(jasmine.any(Bar));
+                expect($injector.get(Bar)).not.toBe($injector.get(Foo));
+            });
         });
 
         it("should throw for unsupported declaration types", function() {

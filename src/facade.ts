@@ -172,8 +172,7 @@ function setupProvider(mod: angular.IModule, provider: Provider): void {
     }
     //ClassProvider
     else if (isClassProvider(provider)) {
-        setupProvider(mod, provider.useClass);
-        setupProvider(mod, {provide: provider.provide, useExisting: provider.useClass});
+        mod.service(getTypeName(provider.provide), provider.useClass);
     }
     //TypeProvider
     else /*if (provider instanceof Type)*/ {
