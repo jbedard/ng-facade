@@ -1,6 +1,6 @@
 {
   "name": "ng-facade",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Angular style annotations in AngularJS",
   "homepage": "https://github.com/jbedard/ng-facade",
   "keywords": [
