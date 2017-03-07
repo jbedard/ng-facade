@@ -9,7 +9,7 @@ const OUTPUT_BOUND_CALLBACK_PREFIX = "__event_";
 
 
 describe("facade", function() {
-    const toDestroy = [];
+    const toDestroy: HTMLElement[] = [];
     function bootstrap(mod) {
         const $test = document.createElement("div");
 

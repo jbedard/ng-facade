@@ -31,8 +31,8 @@ const hasMeta = Reflect.hasOwnMetadata;
 const setMeta = Reflect.defineMetadata;
 const getMeta = Reflect.getOwnMetadata;
 
-function getOrSetMeta(metadataKey: string, metadataValue: any, target: Object) {
-    let v = getMeta(metadataKey, target);
+function getOrSetMeta<T>(metadataKey: string, metadataValue: T, target: Object): T {
+    let v: T = getMeta(metadataKey, target);
     if (undefined === v) {
         setMeta(metadataKey, v = metadataValue, target);
     }
@@ -101,7 +101,7 @@ const COMPONENT_SELF_BINDING = "$$self";
  *    - Angular style `@Injectable() class Foo { constructor(private localName: InjectedClass){} }`
  *    - any mix of the above
  */
-function injectMethod<T extends Injectable<any>>(method: T) {
+function injectMethod(method: Injectable<any>) {
     //Array<string | Type> => Array<string>
     if (Array.isArray(method)) {
         for (let i = 0; i < method.length - 1; i++) {
@@ -191,7 +191,7 @@ function setupProvider(mod: angular.IModule, provider: Provider): void {
     }
 }
 
-function createCompileFunction(ctrl: Type<any>, $injector: angular.auto.IInjectorService): angular.IDirectiveCompileFn {
+function createCompileFunction(ctrl: Type<any>, $injector: angular.auto.IInjectorService): angular.IDirectiveCompileFn | undefined {
     const pre: Array<Injectable<any>> = getMeta(META_PRE_LINK, ctrl.prototype);
 
     if (pre) {
@@ -206,12 +206,12 @@ function createCompileFunction(ctrl: Type<any>, $injector: angular.auto.IInjecto
     }
 }
 
-function addPreLink(targetPrototype, fn: Injectable<any>): void {
-    return getOrSetMeta(META_PRE_LINK, [], targetPrototype).push(fn);
+function addPreLink(targetPrototype: Object, fn: Injectable<any>): void {
+    getOrSetMeta(META_PRE_LINK, <Array<Injectable<any>>>[], targetPrototype).push(fn);
 }
 
 function setupComponent(mod: angular.IModule, ctrl: Type<any>, decl: Component): void {
-    const bindings = {};
+    const bindings: {[name: string]: string} = {};
 
     //@Input(Type)s
     (getMeta(META_INPUTS, ctrl) || []).forEach(function(input: InternalBindingMetadata) {
@@ -276,7 +276,7 @@ function setupDirective(mod: angular.IModule, ctrl: Type<any>, decl: Directive):
     //reference to self
     const require = {[COMPONENT_SELF_BINDING]: dashToCamel(name)};
 
-    mod.directive(dashToCamel(name), ["$injector", function($injector): angular.IDirective {
+    mod.directive(dashToCamel(name), ["$injector", function($injector: angular.auto.IInjectorService): angular.IDirective {
         return {
             restrict,
             controller: ctrl,
@@ -325,7 +325,7 @@ export function Injectable(): ClassDecorator {
  */
 //https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/di/metadata.ts#L53
 export function Inject(thing: string): ParameterDecorator {
-    return function(target: any, propertyKey: string, propertyIndex: number): void {
+    return function(target: Object, propertyKey: string, propertyIndex: number): void {
         getInjectArray(target)[propertyIndex] = thing;
     };
 }
@@ -368,12 +368,12 @@ export function Pipe(info: Pipe): ClassDecorator {
 
 interface InternalBindingMetadata {
     name: string;
-    publicName: string;
+    publicName: string | undefined;
     type: string;
 }
 
 function addBinding(targetPrototype: Object, data: InternalBindingMetadata): void {
-    getOrSetMeta(META_INPUTS, [], targetPrototype.constructor).push(data);
+    getOrSetMeta(META_INPUTS, <InternalBindingMetadata[]>[], targetPrototype.constructor).push(data);
 }
 
 function createInputDecorator(type: string) {
@@ -505,9 +505,7 @@ export function Require(name?: string): PropertyDecorator {
     const needsName = !name || /^[\^\?]+$/.test(name);
 
     return function(targetPrototype: Object, propertyKey: string): void {
-        const constructor = <any>targetPrototype.constructor;
-
-        getOrSetMeta(META_REQUIRE, {}, constructor)[propertyKey] = (name || "") + (needsName ? propertyKey : "");
+        getOrSetMeta(META_REQUIRE, {}, targetPrototype.constructor)[propertyKey] = (name || "") + (needsName ? propertyKey : "");
     };
 }
 
@@ -538,7 +536,7 @@ export interface Directive {
  * https://angular.io/docs/ts/latest/api/core/index/Directive-decorator.html
  */
 export function Directive(info: Directive): ClassDecorator {
-    return function<T>(constructor: Type<T>): void {
+    return function(constructor: Type<any>): void {
         setMeta(META_DIRECTIVE, info, constructor);
     };
 }
@@ -587,7 +585,7 @@ export interface Component extends Directive {
  * https://angular.io/docs/ts/latest/api/core/index/Component-decorator.html
  */
 export function Component(info: Component): ClassDecorator {
-    return function<T>(constructor: Type<T>): void {
+    return function(constructor: Type<any>): void {
         setMeta(META_COMPONENT, info, constructor);
     };
 }
@@ -650,7 +648,7 @@ export interface NgModule {
  * https://angular.io/docs/ts/latest/api/core/index/NgModule-interface.html
  */
 export function NgModule(info: NgModule): ClassDecorator {
-    return function<T>(constructor: Type<T>): void {
+    return function(constructor: Type<any>): void {
         const mod = module(info.id, (info.imports || []).map(getModuleName));
 
         (info.providers || []).forEach(function(provider) {
@@ -679,7 +677,7 @@ module("ng").decorator("$injector", ["$delegate", function(injector/*: angular.a
     const {get, has, instantiate, invoke} = injector;
 
     // get<T>(name: string, caller?: string): T;
-    injector.get = function diGetWrapper<T>(what: string | Type<any>, caller: string): T {
+    injector.get = function diGetWrapper<T>(what: string | Type<T>, caller: string): T {
         return get.call(this, getTypeName(what), caller);
     };
 
@@ -690,7 +688,7 @@ module("ng").decorator("$injector", ["$delegate", function(injector/*: angular.a
     };
 
     // instantiate<T>(typeConstructor: Function, locals?: any): T;
-    injector.instantiate = function diInstantiateWrapper<T>(typeConstructor: Function, locals: any): T {
+    injector.instantiate = function diInstantiateWrapper<T>(typeConstructor: Type<T>, locals: any): T {
         return instantiate.call(this, injectMethod(typeConstructor), locals);
     };
 
