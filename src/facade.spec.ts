@@ -33,11 +33,13 @@ describe("facade", function() {
     }
 
     function bootstrapAndCompile(mod: string, html: string, scopeData = {}) {
-        const $injector = bootstrapAndInitialize("compMod", "$injector");
+        const $injector: angular.auto.IInjectorService = bootstrapAndInitialize("compMod", "$injector");
         const $compile = $injector.get("$compile");
         const $rootScope = $injector.get("$rootScope");
 
-        const $scope = angular.extend($rootScope.$new(), scopeData);
+        const $scope = $rootScope.$new();
+        angular.extend($scope, scopeData);
+
         const $dom = $compile(html)($scope);
 
         $rootScope.$digest();
