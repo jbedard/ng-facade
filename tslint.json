@@ -65,7 +65,7 @@
         "match-default-export-name": true,
         "new-parens": true,
         "no-unnecessary-initializer": true,
-        "no-unnecessary-qualifier": true,
+        //Currently causing issues with namespace augmenting "no-unnecessary-qualifier": true,
         "object-literal-key-quotes": [true, "as-needed"],
         "object-literal-shorthand": true,
         "quotemark": [true, "double", "avoid-escape"],

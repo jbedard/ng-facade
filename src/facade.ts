@@ -23,7 +23,43 @@ const Type = Function;
 export interface Type<T> extends Function { new (...args: any[]): T; }
 
 
-type Injectable<T extends Function> = T | Array<string | T>;
+export type Injectable<T extends Function> = T | Array<string | Type<any> | any | T>;
+
+//Create alternate name for augmenting into "angular" namespace
+export type FacadeInjectable<T extends Function> = Injectable<T>;
+
+
+//Augment some AngularJS interfaces to allow passing types.
+//Basically copy and pasted, but use the local `Injectable` which allows injecting by type.
+//https://www.typescriptlang.org/docs/handbook/declaration-merging.html#module-augmentation
+declare module "angular" {
+    interface IModule {
+        controller(name: string, controllerConstructor: FacadeInjectable<angular.IControllerConstructor>): angular.IModule;
+        controller(object: {[name: string]: FacadeInjectable<angular.IControllerConstructor>}): angular.IModule;
+
+        directive(name: string, directiveFactory: FacadeInjectable<angular.IDirectiveFactory>): angular.IModule;
+        directive(object: {[directiveName: string]: FacadeInjectable<angular.IDirectiveFactory>}): angular.IModule;
+
+        factory(name: string, $getFn: FacadeInjectable<Function>): angular.IModule;
+        factory(object: {[name: string]: FacadeInjectable<Function>}): angular.IModule;
+
+        filter(name: string, filterFactoryFunction: FacadeInjectable<Function>): angular.IModule;
+        filter(object: {[name: string]: FacadeInjectable<Function>}): angular.IModule;
+
+        run(initializationFunction: FacadeInjectable<Function>): angular.IModule;
+
+        service(name: string, serviceConstructor: FacadeInjectable<Function>): angular.IModule;
+        service(object: {[name: string]: FacadeInjectable<Function>}): angular.IModule;
+    }
+
+    namespace auto {
+        interface IInjectorService {
+            get<T>(type: Type<T>, caller?: string): T;
+            get(type: any, caller?: string): any;
+            has(type: any): boolean;
+        }
+    }
+}
 
 
 //For internal data, could be swapped for map-like structures
@@ -677,20 +713,19 @@ export function NgModule(info: NgModule): ClassDecorator {
 
 
 // Decorate the AngularJS injector to support Types in addition to standard strings.
-// Follow the Types + arguments declared in @Types definition
-module("ng").decorator("$injector", ["$delegate", function(injector/*: angular.auto.IInjectorService*/): angular.auto.IInjectorService {
-    //Avoid the use of ?:Type (optional) params to allow the wrapped methods to do defaulting instead of TS
-    //Otherwise signatures should be the same or extend the originals
-
+// Follow the Types + arguments declared in @types definition + the ng-facade overrides
+module("ng").decorator("$injector", ["$delegate", function(injector: angular.auto.IInjectorService): angular.auto.IInjectorService {
     const {get, has, instantiate, invoke} = injector;
 
     // get<T>(name: string, caller?: string): T;
-    injector.get = function diGetWrapper<T>(what: string | Type<T>, caller: string): T {
+    // get<T>(type: Type<T>, caller?: string): T;
+    // get(type: any, caller?: string): any;
+    injector.get = function diGetWrapper(what: any, caller?: string): any {
         return get.call(this, getTypeName(what), caller);
     };
 
     // has(name: string): boolean;
-    // const has = injector.has;
+    // has(type: any): boolean;
     injector.has = function diHasWrapper(what: string | Type<any>): boolean {
         return has.call(this, getTypeName(what));
     };
@@ -702,8 +737,8 @@ module("ng").decorator("$injector", ["$delegate", function(injector/*: angular.a
 
     // invoke(inlineAnnotatedFunction: any[]): any;
     // invoke(func: Function, context?: any, locals?: any): any;
-    injector.invoke = function diInvokeWrapper(method: any[] | Function, context: any, locals: any) {
-        return invoke.call(this, injectMethod(method), context, locals);
+    injector.invoke = function diInvokeWrapper(thing, ...args) {
+        return invoke.call(this, injectMethod(thing), ...args);
     };
 
     return injector;

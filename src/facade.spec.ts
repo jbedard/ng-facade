@@ -2,7 +2,7 @@ import "jasmine";
 import "tslib";
 import * as angular from "angular";
 
-import {Inject, Injectable, PipeTransform, Pipe, Input, InputString, InputCallback, Output, EventEmitter, Require, Directive, Component, HostListener, NgModule} from "./facade";
+import {Inject, Injectable, PipeTransform, Pipe, Provider, Input, InputString, InputCallback, Output, EventEmitter, Require, Directive, Component, HostListener, NgModule, Type} from "./facade";
 
 //Copied from facade.ts to avoid exposing publicly
 const OUTPUT_BOUND_CALLBACK_PREFIX = "__event_";
@@ -10,25 +10,29 @@ const OUTPUT_BOUND_CALLBACK_PREFIX = "__event_";
 
 describe("facade", function() {
     const toDestroy: HTMLElement[] = [];
-    function bootstrap(mod) {
+    function bootstrap(mod: string | angular.IModule) {
+        const modName = typeof mod === "string" ? mod : mod.name;
         const $test = document.createElement("div");
 
         toDestroy.push($test);
 
-        angular.bootstrap($test, [mod], {
+        angular.bootstrap($test, [modName], {
             strictDi: true
         });
 
-        return angular.module(mod);
+        return angular.module(modName);
     }
     afterEach(function() {
         angular.element(toDestroy.splice(0)).remove();
     });
 
-    function bootstrapAndInitialize(mod, what) {
+    function bootstrapAndInitialize<T>(mod: string | angular.IModule, what: Type<T>): T;
+    function bootstrapAndInitialize(mod: string | angular.IModule, what: any): any;
+    function bootstrapAndInitialize(mod: string | angular.IModule, what: any) {
+        const modName = typeof mod === "string" ? mod : mod.name;
         let ref;
-        angular.module(mod).run([what, function(thing) { ref = thing; }]);
-        bootstrap(mod);
+        angular.module(modName).run([what, function(thing) { ref = thing; }]);
+        bootstrap(modName);
         return ref;
     }
 
@@ -619,13 +623,13 @@ describe("facade", function() {
 
             @Injectable()
             class Bar {
-                constructor(private f: Foo) {}
+                constructor(public f: Foo) {}
             }
 
             @NgModule({id: "test", providers: [Foo, Bar]})
             class Mod {}
 
-            const bar = bootstrapAndInitialize("test", Bar);
+            const bar: Bar = bootstrapAndInitialize("test", Bar);
 
             expect(bar.f).toEqual(jasmine.any(Foo));
         });
@@ -633,13 +637,13 @@ describe("facade", function() {
         it("should inject other services via @Inject('thing')", function() {
             @Injectable()
             class Foo {
-                constructor(@Inject("$rootScope") private theScope) {}
+                constructor(@Inject("$rootScope") public theScope) {}
             }
 
             @NgModule({id: "test", providers: [Foo]})
             class Mod {}
 
-            const bar = bootstrapAndInitialize("test", Foo);
+            const bar: Foo = bootstrapAndInitialize("test", Foo);
 
             expect(bar.theScope).not.toBeUndefined();
             expect(bar.theScope.$apply).toEqual(jasmine.any(Function));
@@ -656,7 +660,7 @@ describe("facade", function() {
 
             @Injectable()
             class Baz {
-                constructor(private b: Bar, f: Foo) {
+                constructor(public b: Bar, f: Foo) {
                     expect(f).toBe(this.b.f);
                 }
             }
@@ -710,7 +714,7 @@ describe("facade", function() {
                 @NgModule({id: "test", providers: [Service]})
                 class Mod {}
 
-                const $injector = bootstrapAndInitialize("test", "$injector");
+                const $injector: angular.auto.IInjectorService = bootstrapAndInitialize("test", "$injector");
 
                 expect($injector.has(NotService)).toBe(false);
                 expect($injector.has(Service)).toBe(true);
@@ -728,7 +732,7 @@ describe("facade", function() {
                 @NgModule({id: "test", providers: [Service]})
                 class Mod {}
 
-                const $injector = bootstrapAndInitialize("test", "$injector");
+                const $injector: angular.auto.IInjectorService = bootstrapAndInitialize("test", "$injector");
 
                 const instance1 = $injector.instantiate(Service);
                 const instance2 = $injector.instantiate(Service);
@@ -748,7 +752,7 @@ describe("facade", function() {
                 @NgModule({id: "test", providers: [Service]})
                 class Mod {}
 
-                const $injector = bootstrapAndInitialize("test", "$injector");
+                const $injector: angular.auto.IInjectorService = bootstrapAndInitialize("test", "$injector");
 
                 let instance;
                 $injector.invoke(["$rootScope", Service, function($rootScope, serv) {
@@ -766,7 +770,7 @@ describe("facade", function() {
                 @NgModule({id: "test", providers: [Service]})
                 class Mod {}
 
-                const $injector = bootstrapAndInitialize("test", "$injector");
+                const $injector: angular.auto.IInjectorService = bootstrapAndInitialize("test", "$injector");
 
                 let instance;
                 function method($rootScope, serv) {
@@ -777,6 +781,227 @@ describe("facade", function() {
 
                 expect(instance).toEqual(jasmine.any(Service));
             });
+        });
+    });
+
+    describe("IModule", function() {
+        function createModule(provider: Provider): angular.IModule {
+            @NgModule({
+                id: "test", providers: [provider]
+            })
+            class Mod {}
+
+            return angular.module("test");
+        }
+
+
+        it("should support injecting types into run", function() {
+            @Injectable()
+            class Foo {}
+
+            const module = createModule(Foo);
+            let injected;
+
+            module.run([Foo, function(f: Foo) { injected = f; }]);
+
+            bootstrap(module);
+            expect(injected).toEqual(jasmine.any(Foo));
+        });
+
+        it("should support injecting any key type into run", function() {
+            const injectorKey = {};
+            const injectorValue = [];
+
+            const module = createModule({provide: injectorKey, useValue: injectorValue});
+            let injected;
+
+            module.run([injectorKey, function(f) { injected = f; }]);
+
+            bootstrap(module);
+            expect(injected).toBe(injectorValue);
+        });
+
+        it("should support injecting types into directive factories", function() {
+            @Injectable()
+            class Foo {}
+
+            const module = createModule(Foo);
+            let injected;
+
+            module.directive("injectFoo", [Foo, function(f: Foo): angular.IDirective {
+                injected = f;
+                return {};
+            }]);
+
+            module.run(["$compile", "$rootScope", function($compile: angular.ICompileService, $rootScope: angular.IRootScopeService) {
+                $compile("<inject-foo>")($rootScope).remove();
+            }]);
+
+            bootstrap(module);
+            expect(injected).toEqual(jasmine.any(Foo));
+        });
+
+        it("should support injecting any key type into directive factories", function() {
+            const injectorKey = {};
+            const injectorValue = [];
+
+            const module = createModule({provide: injectorKey, useValue: injectorValue});
+            let injected;
+
+            module.directive("injectFoo", [injectorKey, function(f): angular.IDirective {
+                injected = f;
+                return {};
+            }]);
+
+            module.run(["$compile", "$rootScope", function($compile: angular.ICompileService, $rootScope: angular.IRootScopeService) {
+                $compile("<inject-foo>")($rootScope).remove();
+            }]);
+
+            bootstrap(module);
+            expect(injected).toBe(injectorValue);
+        });
+
+        it("should support injecting types into component controllers", function() {
+            @Injectable()
+            class Foo {}
+
+            const module = createModule(Foo);
+            let injected;
+
+            module.component("injectFoo", {controller: [Foo, function(f: Foo) { injected = f; return {}; }]});
+
+            module.run(["$compile", "$rootScope", function($compile: angular.ICompileService, $rootScope: angular.IRootScopeService) {
+                $compile("<inject-foo>")($rootScope).remove();
+            }]);
+
+            bootstrap(module);
+            expect(injected).toEqual(jasmine.any(Foo));
+        });
+
+        //TODO:
+        // it("should support injecting any key type into component controllers", function() {
+        //     const injectorKey = {};
+
+        //     @Injectable()
+        //     class Foo {}
+
+        //     const module = createModule({provide: injectorKey, useValue: Foo});
+        //     let injected;
+
+        //     module.component("injectFoo", {controller: [injectorKey, function(f: Foo) { injected = f; return {}; }]});
+
+        //     module.run(["$compile", "$rootScope", function($compile: angular.ICompileService, $rootScope: angular.IRootScopeService) {
+        //         $compile("<inject-foo>")($rootScope).remove();
+        //     }]);
+
+        //     bootstrap(module);
+        //     expect(injected).toEqual(jasmine.any(Foo));
+        // });
+
+        it("should support injecting types into controllers", function() {
+            @Injectable()
+            class Foo {}
+
+            const module = createModule(Foo);
+            let injected;
+
+            module.controller("injectFoo", [Foo, function(f: Foo) { injected = f; }]);
+
+            const $controller: angular.IControllerService = bootstrapAndInitialize(module, "$controller");
+            $controller("injectFoo");
+            expect(injected).toEqual(jasmine.any(Foo));
+        });
+
+        it("should support injecting any key type into controllers", function() {
+            const injectorKey = {};
+            const injectorValue = [];
+
+            const module = createModule({provide: injectorKey, useValue: injectorValue});
+            let injected;
+
+            module.controller("injectFoo", [injectorKey, function(f) { injected = f; }]);
+
+            const $controller: angular.IControllerService = bootstrapAndInitialize(module, "$controller");
+            $controller("injectFoo");
+            expect(injected).toBe(injectorValue);
+        });
+
+        it("should support injecting types into factories", function() {
+            @Injectable()
+            class Foo {}
+
+            const module = createModule(Foo);
+            let injected;
+
+            module.factory("injectFoo", [Foo, function(f: Foo) { return (injected = f); }]);
+
+            bootstrapAndInitialize(module, "injectFoo");
+            expect(injected).toEqual(jasmine.any(Foo));
+        });
+
+        it("should support injecting any key type into factories", function() {
+            const injectorKey = {};
+            const injectorValue = [];
+
+            const module = createModule({provide: injectorKey, useValue: injectorValue});
+            let injected;
+
+            module.factory("injectFoo", [injectorKey, function(f) { return (injected = f); }]);
+
+            bootstrapAndInitialize(module, "injectFoo");
+            expect(injected).toBe(injectorValue);
+        });
+
+        it("should support injecting types into services", function() {
+            @Injectable()
+            class Foo {}
+
+            const module = createModule(Foo);
+            let injected;
+
+            module.service("injectFoo", [Foo, function(f: Foo) { return (injected = f); }]);
+
+            bootstrapAndInitialize(module, "injectFoo");
+            expect(injected).toEqual(jasmine.any(Foo));
+        });
+
+        it("should support injecting any key type into services", function() {
+            const injectorKey = {};
+            const injectorValue = [];
+
+            const module = createModule({provide: injectorKey, useValue: injectorValue});
+            let injected;
+
+            module.service("injectFoo", [injectorKey, function(f) { return (injected = f); }]);
+
+            bootstrapAndInitialize(module, "injectFoo");
+            expect(injected).toBe(injectorValue);
+        });
+
+        it("should support injecting types into filters", function() {
+            @Injectable()
+            class Foo {}
+
+            const module = createModule(Foo);
+            let injected;
+
+            module.filter("injectFoo", [Foo, function(f: Foo) { return (injected = f); }]);
+
+            bootstrapAndInitialize(module, "$filter")("injectFoo");
+            expect(injected).toEqual(jasmine.any(Foo));
+        });
+
+        it("should support injecting any key type into filters", function() {
+            const injectorKey = {};
+            const injectorValue = [];
+
+            const module = createModule({provide: injectorKey, useValue: injectorValue});
+            let injected;
+
+            module.filter("injectFoo", [injectorKey, function(f) { return (injected = f); }]);
+
+            bootstrapAndInitialize(module, "$filter")("injectFoo");
+            expect(injected).toBe(injectorValue);
         });
     });
 
