@@ -399,6 +399,54 @@ describe("facade", function() {
             });
         });
 
+        describe("useValue", function() {
+            it("should be supported", function() {
+                class Foo {}
+
+                const key = Foo;
+                const value = new Foo();
+
+                @NgModule({
+                    id: "test", providers: [{provide: key, useValue: value}]
+                })
+                class Mod {}
+
+                const $injector = bootstrapAndInitialize("test", "$injector");
+
+                expect($injector.get(key)).toBe(value);
+            });
+
+            it("should support any key", function() {
+                const key = {};
+                const value = 42;
+
+                @NgModule({
+                    id: "test", providers: [{provide: key, useValue: value}]
+                })
+                class Mod {}
+
+                const $injector = bootstrapAndInitialize("test", "$injector");
+
+                expect($injector.get(key)).toBe(value);
+            });
+
+            it("should support injection into used class", function() {
+                class Foo {};
+
+                class Bar extends Foo {
+                }
+
+                @NgModule({
+                    id: "test", providers: [{provide: Foo, useValue: new Bar()}]
+                })
+                class Mod {}
+
+                const $injector = bootstrapAndInitialize("test", "$injector");
+
+                expect($injector.get(Foo)).toEqual(jasmine.any(Bar));
+            });
+        });
+
         it("should throw for unsupported declaration types", function() {
             expect(function() {
                 @NgModule({

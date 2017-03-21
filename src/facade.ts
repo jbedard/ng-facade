@@ -153,6 +153,9 @@ function isFactoryProvider(o: Provider): o is FactoryProvider  {
 function isClassProvider(o: Provider): o is ClassProvider {
     return "useClass" in o;
 }
+function isValueProvider(o: Provider): o is ValueProvider {
+    return "useValue" in o;
+}
 
 function setupProvider(mod: angular.IModule, provider: Provider): void {
     //Provider type detection similar to:
@@ -184,6 +187,11 @@ function setupProvider(mod: angular.IModule, provider: Provider): void {
     //ClassProvider
     else if (isClassProvider(provider)) {
         mod.service(toTypeName(provider.provide), provider.useClass);
+    }
+    //ValueProvider
+    else if (isValueProvider(provider)) {
+        const value = provider.useValue;
+        mod.factory(toTypeName(provider.provide), function() { return value; });
     }
     //TypeProvider
     else /*if (provider instanceof Type)*/ {
