@@ -462,7 +462,7 @@ describe("facade", function() {
             .toThrow();
         });
 
-        it("should delegate @Pipe({name}) to module.filter(name, [$injector, factory])", function() {
+        it("should delegate @Pipe({name}) to module.filter(name, [PipeTransform, factory])", function() {
             const modSpies = createMockModule();
 
             @Pipe({name: "myPipe"})
@@ -473,7 +473,7 @@ describe("facade", function() {
             @NgModule({id: "pipeMod", providers: [P]})
             class Mod {}
 
-            expect(modSpies.filter).toHaveBeenCalledWith("myPipe", ["$injector", jasmine.any(Function)]);
+            expect(modSpies.filter).toHaveBeenCalledWith("myPipe", [P, jasmine.any(Function)]);
         });
     });
 
@@ -518,6 +518,20 @@ describe("facade", function() {
             const [arg0, arg1] = constructorSpy.calls.mostRecent().args;
             expect(arg0.when).toEqual(jasmine.any(Function));
             expect(arg1).toBe(arg0);
+        });
+
+        it("should be injectable", function() {
+            @Pipe({name: "myPipe"})
+            class P implements PipeTransform {
+                transform(x) { return x; }
+            }
+
+            @NgModule({id: "test", providers: [P]})
+            class Mod {}
+
+            const instance = bootstrapAndInitialize("test", P);
+
+            expect(instance).toEqual(jasmine.any(P));
         });
 
         it("should convert class P { transform() } to a $filter method", function() {

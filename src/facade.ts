@@ -202,8 +202,8 @@ function setupProvider(mod: angular.IModule, provider: Provider): void {
     //PipeTransform
     if (isPipeTransform(provider)) {
         const pipeInfo: Pipe = getMeta(META_PIPE, provider);
-        mod.filter(pipeInfo.name, ["$injector", function($injector: angular.auto.IInjectorService) {
-            const pipe = $injector.instantiate<PipeTransform>(provider);
+        mod.service(getTypeName(provider), provider);
+        mod.filter(pipeInfo.name, [provider, function(pipe: PipeTransform) {
             const transform = pipe.transform.bind(pipe);
             transform.$stateful = (false === pipeInfo.pure);
             return transform;
@@ -404,7 +404,8 @@ export interface PipeTransform {
  * Works as a filter in AngularJS.
  */
 export function Pipe(info: Pipe): ClassDecorator {
-    return function(constructor: PipeTransform): void {
+    return function(constructor: Type<PipeTransform>): void {
+        toTypeName(constructor);
         setMeta(META_PIPE, info, constructor);
     };
 }
