@@ -1017,6 +1017,32 @@ describe("facade", function() {
             bootstrapAndInitialize(module, "$filter")("injectFoo");
             expect(injected).toBe(injectorValue);
         });
+
+        it("should support injecting types into decorators", function() {
+            @Injectable()
+            class Foo {}
+
+            const module = createModule(Foo);
+            let injected;
+
+            module.decorator("$parse", [Foo, "$delegate", function(f: Foo, d) { return (injected = f), d; }]);
+
+            bootstrapAndInitialize(module, "$parse");
+            expect(injected).toEqual(jasmine.any(Foo));
+        });
+
+        it("should support injecting any key type into decorators", function() {
+            const injectorKey = {};
+            const injectorValue = [];
+
+            const module = createModule({provide: injectorKey, useValue: injectorValue});
+            let injected;
+
+            module.decorator("$parse", [injectorKey, "$delegate", function(f, d) { return (injected = f), d; }]);
+
+            bootstrapAndInitialize(module, "$parse");
+            expect(injected).toBe(injectorValue);
+        });
     });
 
     describe("@Component", function() {

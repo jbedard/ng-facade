@@ -50,6 +50,8 @@ declare module "angular" {
 
         service(name: string, serviceConstructor: FacadeInjectable<Function>): angular.IModule;
         service(object: {[name: string]: FacadeInjectable<Function>}): angular.IModule;
+
+        decorator(name: string, decorator: FacadeInjectable<Function>): angular.IModule;
     }
 
     namespace auto {
