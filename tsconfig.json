@@ -5,7 +5,6 @@
 
         "lib": ["dom", "es5"],
 
-        "alwaysStrict": true,
         "noUnusedLocals": false,
         "noUnusedParameters": false,
         "removeComments": false,
@@ -21,6 +20,10 @@
         "noEmitOnError": true,
 
         "outDir": "dist",
+
+        "noImplicitThis": true,
+        "noImplicitReturns": true,
+        "alwaysStrict": true,
 
         "baseUrl": "src",
         "paths": {}

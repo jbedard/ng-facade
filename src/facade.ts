@@ -250,6 +250,7 @@ function createCompileFunction(ctrl: Type<any>, $injector: angular.auto.IInjecto
             }
         });
     }
+    return undefined;
 }
 
 function addPreLink(targetPrototype: Object, fn: Injectable<any>): void {
@@ -486,7 +487,7 @@ export function Output(publicName?: string): PropertyDecorator {
             type: "&"
         });
 
-        addPreLink(targetPrototype, function() {
+        addPreLink(targetPrototype, function(this: Type<any>) {
             (<EventEmitter<any>>this[propertyKey]).emit = (value) => {
                 (this[internalCallback] || noop)({$event: value});
             };
@@ -519,7 +520,7 @@ export class EventEmitter<T> {
 //https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/metadata/directives.ts#L1005-L1017
 export function HostListener(eventType: string, args: string[] = []): MethodDecorator {
     return function(targetPrototype: Object, propertyKey: string): void {
-        function HostListenerSetup($element: JQuery, $parse: angular.IParseService, $rootScope: angular.IScope): void {
+        function HostListenerSetup(this: Type<any>, $element: JQuery, $parse: angular.IParseService, $rootScope: angular.IScope): void {
             //Parse the listener arguments on component initialization
             const argExps = args.map((s) => $parse(s));
 
@@ -761,24 +762,24 @@ module("ng").decorator("$injector", ["$delegate", function(injector: angular.aut
     // get<T>(name: string, caller?: string): T;
     // get<T>(type: Type<T>, caller?: string): T;
     // get(type: any, caller?: string): any;
-    injector.get = function diGetWrapper(what: any, caller?: string): any {
+    injector.get = function diGetWrapper(this: angular.auto.IInjectorService, what: any, caller?: string): any {
         return get.call(this, getTypeName(what), caller);
     };
 
     // has(name: string): boolean;
     // has(type: any): boolean;
-    injector.has = function diHasWrapper(what: string | Type<any>): boolean {
+    injector.has = function diHasWrapper(this: angular.auto.IInjectorService, what: string | Type<any>): boolean {
         return has.call(this, getTypeName(what));
     };
 
     // instantiate<T>(typeConstructor: Function, locals?: any): T;
-    injector.instantiate = function diInstantiateWrapper<T>(typeConstructor: Type<T>, locals: any): T {
+    injector.instantiate = function diInstantiateWrapper<T>(this: angular.auto.IInjectorService, typeConstructor: Type<T>, locals: any): T {
         return instantiate.call(this, injectMethod(typeConstructor), locals);
     };
 
     // invoke(inlineAnnotatedFunction: any[]): any;
     // invoke(func: Function, context?: any, locals?: any): any;
-    injector.invoke = function diInvokeWrapper(thing, ...args) {
+    injector.invoke = function diInvokeWrapper(this: angular.auto.IInjectorService, thing, ...args) {
         return invoke.call(this, injectMethod(thing), ...args);
     };
 

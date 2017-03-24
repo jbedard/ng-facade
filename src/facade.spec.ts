@@ -7,7 +7,6 @@ import {Inject, Injectable, PipeTransform, Pipe, Provider, Input, InputString, I
 //Copied from facade.ts to avoid exposing publicly
 const OUTPUT_BOUND_CALLBACK_PREFIX = "__event_";
 
-
 describe("facade", function() {
     const toDestroy: HTMLElement[] = [];
     function bootstrap(mod: string | angular.IModule) {
@@ -31,7 +30,7 @@ describe("facade", function() {
     function bootstrapAndInitialize(mod: string | angular.IModule, what: any) {
         const modName = typeof mod === "string" ? mod : mod.name;
         let ref;
-        angular.module(modName).run([what, function(thing) { ref = thing; }]);
+        angular.module(modName).run([what, function(thing: any) { ref = thing; }]);
         bootstrap(modName);
         return ref;
     }
