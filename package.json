@@ -32,10 +32,10 @@
     "karma-coverage": "^1.1",
     "karma-jasmine": "^1.1",
     "karma-phantomjs-launcher": "^1.0",
-    "karma-typescript": "^2.1",
+    "karma-typescript": "3.0.0-beta.2",
     "tslib": "^1.5.0",
     "tslint": "4.5",
-    "typescript": "2.1"
+    "typescript": "2.2"
   },
   "dependencies": {
     "angular": "^1.5",
