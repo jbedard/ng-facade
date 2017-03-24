@@ -2,7 +2,7 @@ import "jasmine";
 import "tslib";
 import * as angular from "angular";
 
-import {Inject, Injectable, PipeTransform, Pipe, Provider, Input, InputString, InputCallback, Output, EventEmitter, Require, Directive, Component, HostListener, NgModule, Type} from "./facade";
+import {Inject, Injectable, PipeTransform, Pipe, Provider, Input, InputString, InputCallback, Output, EventEmitter, Require, Directive, Component, HostListener, NgModule, Type, OnInit, OnChanges, OnDestroy, DoCheck} from "./facade";
 
 //Copied from facade.ts to avoid exposing publicly
 const OUTPUT_BOUND_CALLBACK_PREFIX = "__event_";
@@ -1042,6 +1042,40 @@ describe("facade", function() {
 
             bootstrapAndInitialize(module, "$parse");
             expect(injected).toBe(injectorValue);
+        });
+    });
+
+    describe("lifecycle interfaces", function() {
+        it("should provide OnInit", function() {
+            class I implements OnInit {
+                $onInit(): void {
+                    //noop
+                }
+            }
+        });
+
+        it("should provide OnChanges", function() {
+            class I implements OnChanges {
+                $onChanges(onChangesObj: angular.IOnChangesObject): void {
+                    //noop
+                }
+            }
+        });
+
+        it("should provide OnDestroy", function() {
+            class I implements OnDestroy {
+                $onDestroy(): void {
+                    //noop
+                }
+            }
+        });
+
+        it("should provide DoCheck", function() {
+            class I implements DoCheck {
+                $doCheck(): void {
+                    //noop
+                }
+            }
         });
     });
 

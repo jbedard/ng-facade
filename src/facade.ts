@@ -714,6 +714,44 @@ export function NgModule(info: NgModule): ClassDecorator {
     };
 }
 
+/**
+ * The `OnInit` interface, with the AngularJS method $onInit() method.
+ *
+ * https://angular.io/docs/ts/latest/api/core/index/OnInit-class.html
+ */
+export interface OnInit {
+    $onInit(): void;
+}
+
+/**
+ * The `DoCheck` interface, with the AngularJS method $doCheck() method.
+ *
+ * https://angular.io/docs/ts/latest/api/core/index/DoCheck-class.html
+ */
+export interface DoCheck {
+    $doCheck(): void;
+}
+
+/**
+ * The `OnChanges` interface, with the AngularJS method $onChanges(IOnChangesObject) method.
+ *
+ * https://angular.io/docs/ts/latest/api/core/index/OnChanges-class.html
+ */
+export interface OnChanges {
+    $onChanges(onChangesObj: angular.IOnChangesObject): void;
+}
+
+/**
+ * The `OnDestroy` interface, with the AngularJS method $onDestroy() method.
+ *
+ * https://angular.io/docs/ts/latest/api/core/index/OnDestroy-class.html
+ */
+export interface OnDestroy {
+    $onDestroy(): void;
+}
+
+//TODO?: $postLink(): void
+
 
 // Decorate the AngularJS injector to support Types in addition to standard strings.
 // Follow the Types + arguments declared in @types definition + the ng-facade overrides
