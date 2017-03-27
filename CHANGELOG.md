@@ -1,5 +1,23 @@
+<a name="0.4.0"></a>
+# [0.4.0](https://github.com/jbedard/ng-facade/compare/v0.3.3...v0.4.0) (2017-03-27)
+
+
+### Features
+
+* support types as factory/service/constant/decorator/... names ([7f1b14e](https://github.com/jbedard/ng-facade/commit/7f1b14e)), closes [#19](https://github.com/jbedard/ng-facade/issues/19)
+* **Component:** add Angular lifecycle interfaces with AngularJS methods ([de4d2f2](https://github.com/jbedard/ng-facade/commit/de4d2f2)), closes [#20](https://github.com/jbedard/ng-facade/issues/20)
+* enable TypeScript strictNullChecks ([a53a637](https://github.com/jbedard/ng-facade/commit/a53a637))
+* remove the direct dependency on reflect-metadata, allow use of es7.reflect shim  ([8fa4d93](https://github.com/jbedard/ng-facade/commit/8fa4d93)), closes [#22](https://github.com/jbedard/ng-facade/issues/22)
+
+
+### BREAKING CHANGES
+
+* reflect-metadata, es7.reflect or a similar shim must now be included manually
+
+
 <a name="0.3.3"></a>
 ## [0.3.3](https://github.com/jbedard/ng-facade/compare/v0.3.2...v0.3.3) (2017-03-22)
+
 
 
 ### Bug Fixes
