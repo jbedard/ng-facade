@@ -4,7 +4,6 @@
  * License: MIT
  */
 
-import "reflect-metadata";
 import {extend, module, noop} from "angular";
 
 /* TODO...

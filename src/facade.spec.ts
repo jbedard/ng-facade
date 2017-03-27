@@ -1,5 +1,6 @@
 import "jasmine";
 import "tslib";
+import "reflect-metadata";
 import * as angular from "angular";
 
 import {Inject, Injectable, PipeTransform, Pipe, Provider, Input, InputString, InputCallback, Output, EventEmitter, Require, Directive, Component, HostListener, NgModule, Type, OnInit, OnChanges, OnDestroy, DoCheck} from "./facade";
