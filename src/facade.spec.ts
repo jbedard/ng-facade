@@ -712,7 +712,7 @@ describe("facade", function() {
                 constructor(@Inject("foo") private myFoo, other, @Inject("bar") public myBar) {}
             }
 
-            expect(Foo.$inject).toEqual(["foo", undefined, "bar"]);
+            expect(Foo.$inject).toEqual(<string[]>["foo", undefined, "bar"]);
         });
     });
 
@@ -1309,7 +1309,7 @@ describe("facade", function() {
             });
 
             it("should invoke binding expressions when @Output() EventEmitter.emit invoked", function() {
-                let instance: Comp;
+                let instance: Comp | undefined;
 
                 @Component({
                     selector: "comp"
@@ -1336,12 +1336,12 @@ describe("facade", function() {
 
                 expect(instance).toEqual(jasmine.any(Comp));
 
-                instance.fire();
+                instance!.fire();
                 expect(foo).toHaveBeenCalled();
             });
 
             it("should invoke binding expressions when @Output('dash-cased') is used", function() {
-                let instance: Comp;
+                let instance: Comp | undefined;
 
                 @Component({
                     selector: "comp"
@@ -1368,12 +1368,12 @@ describe("facade", function() {
 
                 expect(instance).toEqual(jasmine.any(Comp));
 
-                instance.fire();
+                instance!.fire();
                 expect(foo).toHaveBeenCalled();
             });
 
             it("should invoke binding expressions when @Output('camelCased') is used", function() {
-                let instance: Comp;
+                let instance: Comp | undefined;
 
                 @Component({
                     selector: "comp"
@@ -1400,12 +1400,12 @@ describe("facade", function() {
 
                 expect(instance).toEqual(jasmine.any(Comp));
 
-                instance.fire();
+                instance!.fire();
                 expect(foo).toHaveBeenCalled();
             });
 
             it("should invoke binding local $event variable when invoking @Output() EventEmitters", function() {
-                let instance: Comp;
+                let instance: Comp | undefined;
 
                 @Component({
                     selector: "comp"
@@ -1432,7 +1432,7 @@ describe("facade", function() {
 
                 expect(instance).toEqual(jasmine.any(Comp));
 
-                instance.fire(1);
+                instance!.fire(1);
                 expect(foo).toHaveBeenCalledWith(1);
             });
 
@@ -1491,7 +1491,7 @@ describe("facade", function() {
             });
 
             it("should support emiting @Output() emitters with no bound callback", function() {
-                let instance: Comp;
+                let instance: Comp | undefined;
 
                 @Component({
                     selector: "comp"
@@ -1518,8 +1518,8 @@ describe("facade", function() {
 
                 expect(instance).toEqual(jasmine.any(Comp));
 
-                instance.fire(1);
-                instance.fire(2);
+                instance!.fire(1);
+                instance!.fire(2);
             });
 
             it("should throw if @Output() does not have EventEmitter as type", function() {
@@ -1693,7 +1693,7 @@ describe("facade", function() {
             });
 
             it("should setup @Require() on compilation", function() {
-                let instance: Comp;
+                let instance: Comp | undefined;
 
                 @Component({
                     selector: "comp"
@@ -1711,11 +1711,11 @@ describe("facade", function() {
                 bootstrapAndCompile("compMod", "<comp ng-model='bar'>");
 
                 expect(instance).toEqual(jasmine.any(Comp));
-                expect(instance.ngModel).toBeDefined();
+                expect(instance!.ngModel).toBeDefined();
             });
 
             it("should setup @Require('camelCased') on compilation", function() {
-                let instance: Comp;
+                let instance: Comp | undefined;
 
                 @Component({
                     selector: "comp"
@@ -1733,11 +1733,11 @@ describe("facade", function() {
                 bootstrapAndCompile("compMod", "<comp ng-model='bar'>");
 
                 expect(instance).toEqual(jasmine.any(Comp));
-                expect(instance.foo).toBeDefined();
+                expect(instance!.foo).toBeDefined();
             });
 
             it("should setup @Require('dash-cased') on compilation", function() {
-                let instance: Comp;
+                let instance: Comp | undefined;
 
                 @Component({
                     selector: "comp"
@@ -1755,7 +1755,7 @@ describe("facade", function() {
                 bootstrapAndCompile("compMod", "<comp ng-model='bar'>");
 
                 expect(instance).toEqual(jasmine.any(Comp));
-                expect(instance.foo).toBeDefined();
+                expect(instance!.foo).toBeDefined();
             });
         });
 

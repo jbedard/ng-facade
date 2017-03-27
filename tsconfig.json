@@ -24,6 +24,7 @@
         "noImplicitThis": true,
         "noImplicitReturns": true,
         "alwaysStrict": true,
+        "strictNullChecks": true,
 
         "baseUrl": "src",
         "paths": {}

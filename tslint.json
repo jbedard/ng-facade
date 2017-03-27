@@ -8,7 +8,6 @@
         "array-type": [true, "array-simple"],
         "no-inferrable-types": [true, "ignore-params"],
         "no-internal-module": true,
-        "no-non-null-assertion": true,
         "no-var-requires": true,
         "no-var-keyword": true,
         "prefer-for-of": true,
