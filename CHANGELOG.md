@@ -1,3 +1,30 @@
+<a name="0.3.3"></a>
+## [0.3.3](https://github.com/jbedard/ng-facade/compare/v0.3.2...v0.3.3) (2017-03-22)
+
+
+### Bug Fixes
+
+* **Injectable,$inject:** augment @types/angular to support injecting non-string into decorators ([54f9a11](https://github.com/jbedard/ng-facade/commit/54f9a11)), closes [#2](https://github.com/jbedard/ng-facade/issues/2)
+* **Pipe:** make pipes injectable ([2458d34](https://github.com/jbedard/ng-facade/commit/2458d34)), closes [#18](https://github.com/jbedard/ng-facade/issues/18)
+
+
+
+<a name="0.3.2"></a>
+## [0.3.2](https://github.com/jbedard/ng-facade/compare/v0.3.1...v0.3.2) (2017-03-22)
+
+
+### Bug Fixes
+
+* **Injectable,$inject:** augment @types/angular to support non-string types as injectable names ([c7c8690](https://github.com/jbedard/ng-facade/commit/c7c8690)), closes [#16](https://github.com/jbedard/ng-facade/issues/16)
+* **NgModule:** fix ValueProvider ([9f6f3f7](https://github.com/jbedard/ng-facade/commit/9f6f3f7)), closes [#17](https://github.com/jbedard/ng-facade/issues/17)
+
+
+
+<a name="0.3.1"></a>
+## [0.3.1](https://github.com/jbedard/ng-facade/compare/v0.3.0...v0.3.1) (2017-03-02)
+
+
+
 <a name="0.3.0"></a>
 # [0.3.0](https://github.com/jbedard/ng-facade/compare/38abcb7...v0.3.0) (2017-03-02)
 
