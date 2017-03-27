@@ -4,7 +4,7 @@
  * License: MIT
  */
 
-import {extend, module, noop} from "angular";
+import {extend, identity, module, noop} from "angular";
 
 /* TODO...
     - component lifecycle interfaces: https://angular.io/docs/ts/latest/guide/lifecycle-hooks.html ?
@@ -33,13 +33,13 @@ export type FacadeInjectable<T extends Function> = Injectable<T>;
 //https://www.typescriptlang.org/docs/handbook/declaration-merging.html#module-augmentation
 declare module "angular" {
     interface IModule {
-        controller(name: string, controllerConstructor: FacadeInjectable<angular.IControllerConstructor>): angular.IModule;
+        controller(name: string | Type<any>, controllerConstructor: FacadeInjectable<angular.IControllerConstructor>): angular.IModule;
         controller(object: {[name: string]: FacadeInjectable<angular.IControllerConstructor>}): angular.IModule;
 
-        directive(name: string, directiveFactory: FacadeInjectable<angular.IDirectiveFactory>): angular.IModule;
+        directive(name: string | Type<any>, directiveFactory: FacadeInjectable<angular.IDirectiveFactory>): angular.IModule;
         directive(object: {[directiveName: string]: FacadeInjectable<angular.IDirectiveFactory>}): angular.IModule;
 
-        factory(name: string, $getFn: FacadeInjectable<Function>): angular.IModule;
+        factory(name: string | Type<any>, $getFn: FacadeInjectable<Function>): angular.IModule;
         factory(object: {[name: string]: FacadeInjectable<Function>}): angular.IModule;
 
         filter(name: string, filterFactoryFunction: FacadeInjectable<Function>): angular.IModule;
@@ -47,10 +47,10 @@ declare module "angular" {
 
         run(initializationFunction: FacadeInjectable<Function>): angular.IModule;
 
-        service(name: string, serviceConstructor: FacadeInjectable<Function>): angular.IModule;
+        service(name: string | Type<any>, serviceConstructor: FacadeInjectable<Function>): angular.IModule;
         service(object: {[name: string]: FacadeInjectable<Function>}): angular.IModule;
 
-        decorator(name: string, decorator: FacadeInjectable<Function>): angular.IModule;
+        decorator(name: string | Type<any>, decorator: FacadeInjectable<Function>): angular.IModule;
     }
 
     namespace auto {
@@ -58,6 +58,15 @@ declare module "angular" {
             get<T>(type: Type<T>, caller?: string): T;
             get(type: any, caller?: string): any;
             has(type: any): boolean;
+        }
+
+        interface IProvideService {
+            constant(type: Type<any>, value: any): void;
+            decorator(type: Type<any>, decorator: Function | any[]): void;
+            factory(type: Type<any>, serviceFactoryFunction: Function | any[]): angular.IServiceProvider;
+            provider(type: Type<any>, provider: Function | angular.IServiceProvider): angular.IServiceProvider;
+            service(type: Type<any>, constructor: Function | any[]): angular.IServiceProvider;
+            value(type: Type<any>, value: any): angular.IServiceProvider;
         }
     }
 }
@@ -203,7 +212,7 @@ function setupProvider(mod: angular.IModule, provider: Provider): void {
     //PipeTransform
     if (isPipeTransform(provider)) {
         const pipeInfo: Pipe = getMeta(META_PIPE, provider);
-        mod.service(getTypeName(provider), provider);
+        mod.service(provider, provider);
         mod.filter(pipeInfo.name, [provider, function(pipe: PipeTransform) {
             const transform = pipe.transform.bind(pipe);
             transform.$stateful = (false === pipeInfo.pure);
@@ -212,23 +221,19 @@ function setupProvider(mod: angular.IModule, provider: Provider): void {
     }
     //ExistingProvider
     else if (isExistingProvider(provider)) {
-        const existingProvider = provider.useExisting;
-        mod.factory(toTypeName(provider.provide), ["$injector", function($injector: angular.auto.IInjectorService) {
-            return $injector.get(existingProvider);
-        }]);
+        mod.factory(provider.provide, [provider.useExisting, identity]);
     }
     //FactoryProvider
     else if (isFactoryProvider(provider)) {
-        mod.factory(toTypeName(provider.provide), extend(provider.useFactory, {$inject: provider.deps || []}));
+        mod.factory(provider.provide, extend(provider.useFactory, {$inject: provider.deps || []}));
     }
     //ClassProvider
     else if (isClassProvider(provider)) {
-        mod.service(toTypeName(provider.provide), provider.useClass);
+        mod.service(provider.provide, provider.useClass);
     }
     //ValueProvider
     else if (isValueProvider(provider)) {
-        const value = provider.useValue;
-        mod.factory(toTypeName(provider.provide), function() { return value; });
+        mod.factory(provider.provide, valueFn(provider.useValue));
     }
     //TypeProvider
     else /*if (provider instanceof Type)*/ {
@@ -783,4 +788,44 @@ module("ng").decorator("$injector", ["$delegate", function(injector: angular.aut
     };
 
     return injector;
+}]);
+
+// Decorate (at config) the AngularJS $provide to allow non-string IDs.
+// Follow the Types + arguments declared in @types definition + the ng-facade overrides
+module("ng").config(["$provide", function(provide: angular.auto.IProvideService): void {
+    const {constant, decorator, factory, provider, service, value} = provide;
+
+    // constant(type: Type<any>, value: any): void;
+    provide.constant = function diConstant(this: angular.auto.IProvideService, type: Type<any> | string, v: any): void {
+        constant.call(this, toTypeName(type), v);
+    };
+
+    // value(type: Type<any>, value: any): angular.IServiceProvider;
+    provide.value = function diValue(this: angular.auto.IProvideService, type: Type<any> | string, v: any): angular.IServiceProvider {
+        return value.call(this, toTypeName(type), v);
+    };
+
+    // decorator(type: Type<any>, decorator: Function): void;
+    // decorator(type: Type<any>, inlineAnnotatedFunction: any[]): void;
+    provide.decorator = function diDecorator(this: angular.auto.IProvideService, type: Type<any> | string, dec: Function | any[]): void {
+        decorator.call(this, toTypeName(type), dec);
+    };
+
+    // factory(type: Type<any>, serviceFactoryFunction: Function): angular.IServiceProvider;
+    // factory(type: Type<any>, inlineAnnotatedFunction: any[]): angular.IServiceProvider;
+    provide.factory = function diFactory(this: angular.auto.IProvideService, type: Type<any> | string, f: Function | any[]): angular.IServiceProvider {
+        return factory.call(this, toTypeName(type), f);
+    };
+
+    // provider(type: Type<any>, provider: angular.IServiceProvider): angular.IServiceProvider;
+    // provider(type: Type<any>, serviceProviderConstructor: Function): angular.IServiceProvider;
+    provide.provider = function diProvider(this: angular.auto.IProvideService, type: Type<any> | string, p: angular.IServiceProvider | Function): angular.IServiceProvider {
+        return provider.call(this, toTypeName(type), p);
+    };
+
+    // service(type: Type<any>, constructor: Function): angular.IServiceProvider;
+    // service(type: Type<any>, inlineAnnotatedFunction: any[]): angular.IServiceProvider;
+    provide.service = function diService(this: angular.auto.IProvideService, type: Type<any> | string, s: Function | any[]): angular.IServiceProvider {
+        return service.call(this, toTypeName(type), s);
+    };
 }]);

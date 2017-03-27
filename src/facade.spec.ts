@@ -798,6 +798,153 @@ describe("facade", function() {
         });
     });
 
+    describe("$provide", function() {
+        let mod: angular.IModule;
+        beforeEach(function() {
+            mod = angular.module("test", []);
+        });
+
+        const O = new (function Obj() { /*empty*/ })();
+
+        describe("constant", function() {
+            it("should allow types as names on IModule", function() {
+                mod.constant(O, 42);
+
+                const fetched = bootstrapAndInitialize(mod, O);
+
+                expect(fetched).toBe(42);
+            });
+
+            it("should allow types as names on $provide", function() {
+                mod.config(["$provide", function(p: angular.auto.IProvideService) {
+                    p.constant(O, 42);
+                }]);
+
+                const fetched = bootstrapAndInitialize(mod, O);
+
+                expect(fetched).toBe(42);
+            });
+        });
+
+        describe("value", function() {
+            it("should allow types as names on IModule", function() {
+                mod.value(O, 42);
+
+                const fetched = bootstrapAndInitialize(mod, O);
+
+                expect(fetched).toBe(42);
+            });
+
+            it("should allow types as names on $provide", function() {
+                mod.config(["$provide", function(p: angular.auto.IProvideService) {
+                    p.value(O, 42);
+                }]);
+
+                const fetched = bootstrapAndInitialize(mod, O);
+
+                expect(fetched).toBe(42);
+            });
+        });
+
+        describe("service", function() {
+            it("should allow types as names on IModule", function() {
+                class TheType {}
+                mod.service(O, TheType);
+
+                const fetched = bootstrapAndInitialize(mod, O);
+
+                expect(fetched).toEqual(jasmine.any(TheType));
+            });
+
+            it("should allow types as names on $provide", function() {
+                class TheType {}
+                mod.config(["$provide", function(p: angular.auto.IProvideService) {
+                    p.service(O, TheType);
+                }]);
+
+                const fetched = bootstrapAndInitialize(mod, O);
+
+                expect(fetched).toEqual(jasmine.any(TheType));
+            });
+        });
+
+        describe("factory", function() {
+            it("should allow types as names on IModule", function() {
+                mod.factory(O, function() { return 42; });
+
+                const fetched = bootstrapAndInitialize(mod, O);
+
+                expect(fetched).toBe(42);
+            });
+
+            it("should allow types as names on $provide", function() {
+                mod.config(["$provide", function(p: angular.auto.IProvideService) {
+                    p.factory(O, function() { return 42; });
+                }]);
+
+                const fetched = bootstrapAndInitialize(mod, O);
+
+                expect(fetched).toBe(42);
+            });
+        });
+
+        describe("decorator", function() {
+            it("should allow decorating by type on IModule", function() {
+                let del: TheType | undefined;
+
+                class TheType {}
+                mod.service(O, TheType);
+                mod.decorator(O, ["$delegate", function($delegate) {
+                    del = $delegate;
+                    return 42;
+                }]);
+
+                const fetched = bootstrapAndInitialize(mod, O);
+
+                expect(fetched).toBe(42);
+                expect(del).toEqual(jasmine.any(TheType));
+            });
+
+            it("should allow decorating by type on $provide", function() {
+                let del: TheType | undefined;
+
+                class TheType {}
+                mod.service(O, TheType);
+
+                mod.config(["$provide", function(p: angular.auto.IProvideService) {
+                    p.decorator(O, ["$delegate", function($delegate) {
+                        del = $delegate;
+                        return 42;
+                    }]);
+                }]);
+
+                const fetched = bootstrapAndInitialize(mod, O);
+
+                expect(fetched).toBe(42);
+            });
+        });
+
+        describe("provider", function() {
+            it("should allow providing by type on IModule", function() {
+                mod.provider(O, {$get() { return 42; }});
+
+                const fetched = bootstrapAndInitialize(mod, O);
+
+                expect(fetched).toBe(42);
+            });
+
+            it("should allow providing by type on $provide", function() {
+                mod.config(["$provide", function(p: angular.auto.IProvideService) {
+                    p.provider(O, {$get() { return 42; }});
+                }]);
+
+                const fetched = bootstrapAndInitialize(mod, O);
+
+                expect(fetched).toBe(42);
+            });
+        });
+    });
+
     describe("IModule", function() {
         function createModule(provider: Provider): angular.IModule {
             @NgModule({
