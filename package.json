@@ -21,8 +21,8 @@
     "url": "https://github.com/jbedard/ng-facade.git"
   },
   "devDependencies": {
-    "@types/angular": "^1.6",
-    "@types/jasmine": "^2.5",
+    "@types/angular": "^1.6.14",
+    "@types/jasmine": "^2.5.47",
     "conventional-changelog-cli": "^1.2",
     "istanbul": "^0.4",
     "jasmine": "^2.5",
@@ -32,14 +32,14 @@
     "karma-coverage": "^1.1",
     "karma-jasmine": "^1.1",
     "karma-phantomjs-launcher": "^1.0",
-    "karma-typescript": "3.0.0-beta.2",
+    "karma-typescript": "3.0",
     "reflect-metadata": "^0.1",
     "tslib": "^1.5.0",
     "tslint": "4.5",
     "typescript": "2.2"
   },
   "dependencies": {
-    "angular": "^1.5"
+    "angular": "^1.6.4"
   },
   "scripts": {
     "build": "tsc",
