@@ -72,9 +72,15 @@ declare module "angular" {
 
 
 //For internal data, could be swapped for map-like structures
-const hasMeta = Reflect.hasOwnMetadata;
-const setMeta = Reflect.defineMetadata;
-const getMeta = Reflect.getOwnMetadata;
+function hasMeta(k: string, o: any): boolean {
+    return Reflect.hasOwnMetadata(k, o);
+}
+function setMeta(k: string, v: any, o: any): void {
+    Reflect.defineMetadata(k, v, o);
+}
+function getMeta(k: string, o: any): any {
+    return Reflect.getOwnMetadata(k, o);
+}
 
 function getOrSetMeta<T>(metadataKey: string, metadataValue: T, target: Object): T {
     let v: T = getMeta(metadataKey, target);
