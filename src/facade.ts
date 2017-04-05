@@ -16,7 +16,6 @@ import {extend, identity, module, noop} from "angular";
 
 function valueFn<T>(v: T): () => T { return () => v; };
 
-
 //https://github.com/angular/angular/blob/2.4.8/modules/%40angular/core/src/type.ts
 const Type = Function;
 export interface Type<T> extends Function { new (...args: any[]): T; }
@@ -793,39 +792,32 @@ module("ng").decorator("$injector", ["$delegate", function(injector: angular.aut
 // Decorate (at config) the AngularJS $provide to allow non-string IDs.
 // Follow the Types + arguments declared in @types definition + the ng-facade overrides
 module("ng").config(["$provide", function(provide: angular.auto.IProvideService): void {
-    const {constant, decorator, factory, provider, service, value} = provide;
+    ["constant", "value", "factory", "provider", "service"].forEach(function(method) {
+        const delegate = provide[method];
 
-    // constant(type: Type<any>, value: any): void;
-    provide.constant = function diConstant(this: angular.auto.IProvideService, type: Type<any> | string, v: any): void {
-        constant.call(this, toTypeName(type), v);
-    };
+        function diProvideWrapper(this: angular.auto.IProvideService, key: string | Type<any>, value: Function | any | any[]): angular.IServiceProvider;
+        function diProvideWrapper(this: angular.auto.IProvideService, key: string | Type<any>, value: angular.IServiceProvider): angular.IServiceProvider;
+        function diProvideWrapper(this: angular.auto.IProvideService, multi: {key: string, value: any}): void;
 
-    // value(type: Type<any>, value: any): angular.IServiceProvider;
-    provide.value = function diValue(this: angular.auto.IProvideService, type: Type<any> | string, v: any): angular.IServiceProvider {
-        return value.call(this, toTypeName(type), v);
-    };
+        function diProvideWrapper(this: angular.auto.IProvideService, key: string | Type<any> | {key: string, value: any}, value?: Function | angular.IServiceProvider | any[]): angular.IServiceProvider | void {
+            if (arguments.length === 1) {
+                for (const objKey in <Object>key) {
+                    delegate(objKey, key[objKey]);
+                }
+            }
+            else {
+                return delegate(toTypeName(<string | Type<any>>key), <Function | any | any[]>value);
+            }
+        }
+
+        provide[method] = diProvideWrapper;
+    });
+
+    const decorator = provide.decorator;
 
     // decorator(type: Type<any>, decorator: Function): void;
     // decorator(type: Type<any>, inlineAnnotatedFunction: any[]): void;
     provide.decorator = function diDecorator(this: angular.auto.IProvideService, type: Type<any> | string, dec: Function | any[]): void {
         decorator.call(this, toTypeName(type), dec);
-    };
-
-    // factory(type: Type<any>, serviceFactoryFunction: Function): angular.IServiceProvider;
-    // factory(type: Type<any>, inlineAnnotatedFunction: any[]): angular.IServiceProvider;
-    provide.factory = function diFactory(this: angular.auto.IProvideService, type: Type<any> | string, f: Function | any[]): angular.IServiceProvider {
-        return factory.call(this, toTypeName(type), f);
-    };
-
-    // provider(type: Type<any>, provider: angular.IServiceProvider): angular.IServiceProvider;
-    // provider(type: Type<any>, serviceProviderConstructor: Function): angular.IServiceProvider;
-    provide.provider = function diProvider(this: angular.auto.IProvideService, type: Type<any> | string, p: angular.IServiceProvider | Function): angular.IServiceProvider {
-        return provider.call(this, toTypeName(type), p);
-    };
-
-    // service(type: Type<any>, constructor: Function): angular.IServiceProvider;
-    // service(type: Type<any>, inlineAnnotatedFunction: any[]): angular.IServiceProvider;
-    provide.service = function diService(this: angular.auto.IProvideService, type: Type<any> | string, s: Function | any[]): angular.IServiceProvider {
-        return service.call(this, toTypeName(type), s);
     };
 }]);

@@ -824,6 +824,13 @@ describe("facade", function() {
 
                 expect(fetched).toBe(42);
             });
+
+            it("should support {key: value} Objects", function() {
+                mod.constant({foo: 42});
+                mod.run(["foo", function(foo) {
+                    expect(foo).toBe(42);
+                }]);
+            });
         });
 
         describe("value", function() {
@@ -843,6 +850,13 @@ describe("facade", function() {
                 const fetched = bootstrapAndInitialize(mod, O);
 
                 expect(fetched).toBe(42);
+            });
+
+            it("should support {key: value} Objects", function() {
+                mod.value({foo: 42});
+                mod.run(["foo", function(foo) {
+                    expect(foo).toBe(42);
+                }]);
             });
         });
 
@@ -866,6 +880,14 @@ describe("facade", function() {
 
                 expect(fetched).toEqual(jasmine.any(TheType));
             });
+
+            it("should support {key: value} Objects", function() {
+                class TheType {}
+                mod.service({foo: TheType});
+                mod.run(["foo", function(foo) {
+                    expect(foo).toEqual(jasmine.any(TheType));
+                }]);
+            });
         });
 
         describe("factory", function() {
@@ -885,6 +907,13 @@ describe("facade", function() {
                 const fetched = bootstrapAndInitialize(mod, O);
 
                 expect(fetched).toBe(42);
+            });
+
+            it("should support {key: value} Objects", function() {
+                mod.factory({foo() { return 42; }});
+                mod.run(["foo", function(foo) {
+                    expect(foo).toBe(42);
+                }]);
             });
         });
 
@@ -941,6 +970,13 @@ describe("facade", function() {
                 const fetched = bootstrapAndInitialize(mod, O);
 
                 expect(fetched).toBe(42);
+            });
+
+            it("should support {key: value} Objects", function() {
+                mod.provider({foo: {$get() { return 42; }}});
+                mod.run(["foo", function(foo) {
+                    expect(foo).toBe(42);
+                }]);
             });
         });
     });
