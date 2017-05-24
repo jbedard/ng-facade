@@ -253,6 +253,58 @@ describe("facade", function() {
                 expect("$apply" in instance.a).toBe(true);
                 expect(instance.b).toEqual(jasmine.any(Foo));
             });
+
+            it("should support factory.$inject to inject into factory method", function() {
+                @Injectable()
+                class Foo {}
+
+                class Bar {
+                    constructor(public a, public b) {}
+                }
+
+                function factory(a, b) { return new Bar(a, b); }
+                (<any>factory).$inject = ["$rootScope", Foo];
+
+                @NgModule({
+                    id: "test",
+                    providers: [Foo, {
+                        provide: Bar,
+                        useFactory: factory
+                    }]
+                })
+                class Mod {}
+
+                const instance = bootstrapAndInitialize("test", Bar);
+
+                expect(instance).toEqual(jasmine.any(Bar));
+                expect("$apply" in instance.a).toBe(true);
+                expect(instance.b).toEqual(jasmine.any(Foo));
+            });
+
+            it("should throw if both factory.$inject and deps declared", function() {
+                @Injectable()
+                class Foo {}
+
+                class Bar {
+                    constructor(public a, public b) {}
+                }
+
+                function factory(a, b) { return new Bar(a, b); }
+                (<any>factory).$inject = ["$rootScope", Foo];
+
+                expect(function() {
+                    @NgModule({
+                        id: "test",
+                        providers: [Foo, {
+                            provide: Bar,
+                            useFactory: factory,
+                            deps: ["$rootScope", Foo]
+                        }]
+                    })
+                    class Mod {}
+                })
+                .toThrow();
+            });
         });
 
         describe("useExisting", function() {

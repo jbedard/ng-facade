@@ -230,7 +230,14 @@ function setupProvider(mod: angular.IModule, provider: Provider): void {
     }
     //FactoryProvider
     else if (isFactoryProvider(provider)) {
-        mod.factory(provider.provide, extend(provider.useFactory, {$inject: provider.deps || []}));
+        const factory = provider.useFactory;
+        if (provider.deps) {
+            if (factory.$inject) {
+                throw new Error("Can not declare both $inject and deps for a factory");
+            }
+            factory.$inject = provider.deps;
+        }
+        mod.factory(provider.provide, factory);
     }
     //ClassProvider
     else if (isClassProvider(provider)) {
