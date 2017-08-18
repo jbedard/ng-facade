@@ -4,7 +4,7 @@
  * License: MIT
  */
 
-import {extend, identity, module, noop} from "angular";
+import { extend, identity, module, noop } from "angular";
 
 /* TODO...
     - component lifecycle interfaces: https://angular.io/docs/ts/latest/guide/lifecycle-hooks.html ?
@@ -14,7 +14,7 @@ import {extend, identity, module, noop} from "angular";
 */
 
 
-function valueFn<T>(v: T): () => T { return () => v; };
+function valueFn<T>(v: T): () => T { return () => v; }
 
 //https://github.com/angular/angular/blob/2.4.8/modules/%40angular/core/src/type.ts
 const Type = Function;
@@ -167,12 +167,12 @@ function injectMethod(method: Injectable<any>) {
     //Extract the object types via TypeScript metadata
     const paramTypes: Array<Type<any>> = Reflect.getMetadata("design:paramtypes", method);
     if (paramTypes) {
-        const $inject = getInjectArray(method);
+        const $paramsInject = getInjectArray(method);
 
         for (let i = 0; i < paramTypes.length; i++) {
             //Try to extract types via TypeScript if currently unknown
-            if (undefined === $inject[i]) {
-                $inject[i] = paramTypes[i];
+            if (undefined === $paramsInject[i]) {
+                $paramsInject[i] = paramTypes[i];
             }
         }
     }
@@ -481,6 +481,20 @@ export const InputString = createInputDecorator("@");
 export const InputCallback = createInputDecorator("&");
 
 
+/**
+ * EventEmitter
+ *
+ * A subset of the Angular interface.
+ *
+ * https://angular.io/docs/ts/latest/api/core/index/EventEmitter-class.html
+ */
+//https://github.com/angular/angular/blob/2.4.7/modules/%40angular/facade/src/async.ts
+export class EventEmitter<T> {
+    public emit(value?: T): void {
+        throw new Error("Uninitialized EventEmitter");
+    }
+}
+
 const OUTPUT_BOUND_CALLBACK_PREFIX = "__event_";
 
 /**
@@ -509,20 +523,6 @@ export function Output(publicName?: string): PropertyDecorator {
             };
         });
     };
-};
-
-/**
- * EventEmitter
- *
- * A subset of the Angular interface.
- *
- * https://angular.io/docs/ts/latest/api/core/index/EventEmitter-class.html
- */
-//https://github.com/angular/angular/blob/2.4.7/modules/%40angular/facade/src/async.ts
-export class EventEmitter<T> {
-    public emit(value?: T): void {
-        throw new Error("Uninitialized EventEmitter");
-    }
 }
 
 

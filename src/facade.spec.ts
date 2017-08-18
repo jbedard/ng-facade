@@ -3,7 +3,7 @@ import "tslib";
 import "reflect-metadata";
 import * as angular from "angular";
 
-import {Inject, Injectable, PipeTransform, Pipe, Provider, Input, InputString, InputCallback, Output, EventEmitter, Require, Directive, Component, HostListener, NgModule, Type, OnInit, OnChanges, OnDestroy, DoCheck} from "./facade";
+import { Inject, Injectable, PipeTransform, Pipe, Provider, Input, InputString, InputCallback, Output, EventEmitter, Require, Directive, Component, HostListener, NgModule, Type, OnInit, OnChanges, OnDestroy, DoCheck } from "./facade";
 
 //Copied from facade.ts to avoid exposing publicly
 const OUTPUT_BOUND_CALLBACK_PREFIX = "__event_";
@@ -412,9 +412,9 @@ describe("facade", function() {
 
             it("should support injection into used class", function() {
                 @Injectable()
-                class Baz {};
+                class Baz {}
 
-                class Foo {};
+                class Foo {}
 
                 @Injectable()
                 class Bar extends Foo {
@@ -435,9 +435,9 @@ describe("facade", function() {
             //NOTE: this may be stricter then Angular where @Injectable is optional
             it("should throw when trying to inject into non-@Injectable useClass", function() {
                 @Injectable()
-                class Baz {};
+                class Baz {}
 
-                class Foo {};
+                class Foo {}
 
                 class Bar extends Foo {
                     constructor(public baz: Baz) { super(); }
@@ -487,7 +487,7 @@ describe("facade", function() {
             });
 
             it("should support injection into used class", function() {
-                class Foo {};
+                class Foo {}
 
                 class Bar extends Foo {
                 }
