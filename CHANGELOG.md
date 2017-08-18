@@ -1,3 +1,14 @@
+<a name="0.4.3"></a>
+## [0.4.3](https://github.com/jbedard/ng-facade/compare/v0.4.1...v0.4.3) (2017-08-18)
+
+
+### Bug Fixes
+
+* declare angular dependency as a peer dependency ([99d1924](https://github.com/jbedard/ng-facade/commit/99d1924))
+* **useFactory:** allow use of $inject on factory methods ([568ba58](https://github.com/jbedard/ng-facade/commit/568ba58)), closes [#25](https://github.com/jbedard/ng-facade/issues/25)
+
+
+
 <a name="0.4.0"></a>
 # [0.4.0](https://github.com/jbedard/ng-facade/compare/v0.3.3...v0.4.0) (2017-03-27)
 
