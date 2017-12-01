@@ -1260,7 +1260,10 @@ describe("facade", function() {
             const module = createModule(Foo);
             let injected;
 
-            module.decorator("$parse", [Foo, "$delegate", function(f: Foo, d) { return (injected = f), d; }]);
+            module.decorator("$parse", [Foo, "$delegate", function(f: Foo, d) {
+                injected = f;
+                return d;
+            }]);
 
             bootstrapAndInitialize(module, "$parse");
             expect(injected).toEqual(jasmine.any(Foo));
@@ -1273,7 +1276,10 @@ describe("facade", function() {
             const module = createModule({provide: injectorKey, useValue: injectorValue});
             let injected;
 
-            module.decorator("$parse", [injectorKey, "$delegate", function(f, d) { return (injected = f), d; }]);
+            module.decorator("$parse", [injectorKey, "$delegate", function(f, d) {
+                injected = f;
+                return d;
+            }]);
 
             bootstrapAndInitialize(module, "$parse");
             expect(injected).toBe(injectorValue);

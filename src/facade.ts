@@ -120,15 +120,15 @@ function toTypeName(type: string | Type<any>): string {
 }
 
 function getModuleName(mod: string | angular.IModule | Type<any>): string {
-    if (typeof mod !== "string") {
-        if (hasMeta(META_MODULE, mod)) {
-            mod = (<NgModule>getMeta(META_MODULE, mod)).id;
-        }
-        else {
-            mod = (<angular.IModule>mod).name;
-        }
+    if (typeof mod === "string") {
+        return mod;
     }
-    return mod;
+    else if (hasMeta(META_MODULE, mod)) {
+        return (<NgModule>getMeta(META_MODULE, mod)).id;
+    }
+    else {
+        return (<angular.IModule>mod).name;
+    }
 }
 
 function getInjectArray(target: Injectable<any>): Array<Injectable<any>> {
