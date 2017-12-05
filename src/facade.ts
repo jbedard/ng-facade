@@ -795,7 +795,7 @@ module("ng").decorator("$injector", ["$delegate", function(injector: angular.aut
 
     // invoke(inlineAnnotatedFunction: any[]): any;
     // invoke(func: Function, context?: any, locals?: any): any;
-    injector.invoke = function diInvokeWrapper(this: angular.auto.IInjectorService, thing, ...args) {
+    injector.invoke = function diInvokeWrapper(this: angular.auto.IInjectorService, thing: Type<any>, ...args: any[]) {
         return invoke.call(this, injectMethod(thing), ...args);
     };
 
