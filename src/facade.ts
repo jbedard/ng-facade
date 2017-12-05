@@ -100,7 +100,7 @@ const META_PIPE       = "@Pipe";
 const META_PRE_LINK   = "preLink";
 const META_REQUIRE    = "@Require";
 
-function getTypeName(type: string | Type<any>): string {
+function getTypeName(type: string | Function): string {
     if (typeof type === "string") {
         return type;
     }
@@ -110,7 +110,7 @@ function getTypeName(type: string | Type<any>): string {
 //A counter/uid for Object => string identifiers
 let tid = 0;
 
-function toTypeName(type: string | Type<any>): string {
+function toTypeName(type: string | Function): string {
     let typeName = getTypeName(type);
     if (!typeName) {
         typeName = (<any>type).name + (window["angular"].mock ? "" : `_${tid++}`);
@@ -373,7 +373,7 @@ function setupDeclaration(mod: angular.IModule, decl: Type<any>): void {
  */
 //https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/di/metadata.ts#L146
 export function Injectable(): ClassDecorator {
-    return function<T>(constructor: Type<T>): void {
+    return function(constructor: Function): void {
         toTypeName(constructor);
     };
 }
@@ -423,7 +423,7 @@ export interface PipeTransform {
  * Works as a filter in AngularJS.
  */
 export function Pipe(info: Pipe): ClassDecorator {
-    return function(constructor: Type<PipeTransform>): void {
+    return function(constructor: Function): void {
         toTypeName(constructor);
         setMeta(META_PIPE, info, constructor);
     };
@@ -600,7 +600,7 @@ export interface Directive {
  * https://angular.io/docs/ts/latest/api/core/index/Directive-decorator.html
  */
 export function Directive(info: Directive): ClassDecorator {
-    return function(constructor: Type<any>): void {
+    return function(constructor: Function): void {
         setMeta(META_DIRECTIVE, info, constructor);
     };
 }
@@ -649,7 +649,7 @@ export interface Component extends Directive {
  * https://angular.io/docs/ts/latest/api/core/index/Component-decorator.html
  */
 export function Component(info: Component): ClassDecorator {
-    return function(constructor: Type<any>): void {
+    return function(constructor: Function): void {
         setMeta(META_COMPONENT, info, constructor);
     };
 }
@@ -712,7 +712,7 @@ export interface NgModule {
  * https://angular.io/docs/ts/latest/api/core/index/NgModule-interface.html
  */
 export function NgModule(info: NgModule): ClassDecorator {
-    return function(constructor: Type<any>): void {
+    return function(constructor: Function): void {
         const mod = module(info.id, (info.imports || []).map(getModuleName));
 
         (info.providers || []).forEach(function(provider) {
