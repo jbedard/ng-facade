@@ -756,6 +756,51 @@ describe("facade", function() {
             expect(bar.f).toEqual(jasmine.any(Foo));
             expect(bar.s.$apply).toEqual(jasmine.any(Function));
         });
+
+        it("should inherited parent class constructors", function() {
+            @Injectable()
+            class Baz {}
+
+            @Injectable()
+            class Bar {
+                constructor(public b: Baz, @Inject("$rootScope") public s) {}
+            }
+
+            @Injectable()
+            class Foo extends Bar {}
+
+            @NgModule({id: "test", providers: [Foo, Bar, Baz]})
+            class Mod {}
+
+            const foo = bootstrapAndInitialize("test", Foo);
+
+            expect(foo.b).toEqual(jasmine.any(Baz));
+            expect(foo.s.$apply).toEqual(jasmine.any(Function));
+        });
+
+        it("should override parent constructor metadata", function() {
+            class Baz {}
+
+            @Injectable()
+            class Bar {
+                constructor(public b: Baz, public n: number) {}
+            }
+
+            @Injectable()
+            class Foo extends Bar {
+                constructor() {
+                    super(new Baz(), 42);
+                }
+            }
+
+            @NgModule({id: "test", providers: [Foo, Bar]})
+            class Mod {}
+
+            const foo = bootstrapAndInitialize("test", Foo);
+
+            expect(foo.b).toEqual(jasmine.any(Baz));
+            expect(foo.n).toBe(42);
+        });
     });
 
     describe("@Inject", function() {
