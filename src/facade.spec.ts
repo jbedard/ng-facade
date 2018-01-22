@@ -254,6 +254,31 @@ describe("facade", function() {
                 expect(instance.b).toEqual(jasmine.any(Foo));
             });
 
+            it("should support deps to inject into factory method declared out of order", function() {
+                @Injectable()
+                class Foo {}
+
+                class Bar {
+                    constructor(public a, public b) {}
+                }
+
+                @NgModule({
+                    id: "test",
+                    providers: [{
+                        provide: Bar,
+                        useFactory(a, b) { return new Bar(a, b); },
+                        deps: ["$rootScope", Foo]
+                    }, Foo]
+                })
+                class Mod {}
+
+                const instance = bootstrapAndInitialize("test", Bar);
+
+                expect(instance).toEqual(jasmine.any(Bar));
+                expect("$apply" in instance.a).toBe(true);
+                expect(instance.b).toEqual(jasmine.any(Foo));
+            });
+
             it("should support factory.$inject to inject into factory method", function() {
                 @Injectable()
                 class Foo {}
@@ -333,6 +358,22 @@ describe("facade", function() {
 
                 @NgModule({
                     id: "test", providers: [Foo, {provide: Bar, useExisting: Foo}]
+                })
+                class Mod {}
+
+                const $injector = bootstrapAndInitialize("test", "$injector");
+
+                expect($injector.get(Bar)).toBe($injector.get(Foo));
+            });
+
+            it("should support declared out of order", function() {
+                @Injectable()
+                class Foo {}
+
+                const Bar = {};
+
+                @NgModule({
+                    id: "test", providers: [{provide: Bar, useExisting: Foo}, Foo]
                 })
                 class Mod {}
 
@@ -423,6 +464,28 @@ describe("facade", function() {
 
                 @NgModule({
                     id: "test", providers: [Baz, {provide: Foo, useClass: Bar}]
+                })
+                class Mod {}
+
+                const $injector = bootstrapAndInitialize("test", "$injector");
+
+                expect($injector.get(Foo)).toEqual(jasmine.any(Bar));
+                expect($injector.get(Foo).baz).toEqual(jasmine.any(Baz));
+            });
+
+            it("should support injection into used class when declared out of order", function() {
+                @Injectable()
+                class Baz {}
+
+                class Foo {}
+
+                @Injectable()
+                class Bar extends Foo {
+                    constructor(public baz: Baz) { super(); }
+                }
+
+                @NgModule({
+                    id: "test", providers: [{provide: Foo, useClass: Bar}, Baz]
                 })
                 class Mod {}
 
