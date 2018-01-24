@@ -987,9 +987,10 @@ describe("facade", function() {
 
             it("should support {key: value} Objects", function() {
                 mod.constant({foo: 42});
-                mod.run(["foo", function(foo) {
-                    expect(foo).toBe(42);
-                }]);
+
+                const fetched = bootstrapAndInitialize(mod, "foo");
+
+                expect(fetched).toBe(42);
             });
         });
 
@@ -1014,9 +1015,10 @@ describe("facade", function() {
 
             it("should support {key: value} Objects", function() {
                 mod.value({foo: 42});
-                mod.run(["foo", function(foo) {
-                    expect(foo).toBe(42);
-                }]);
+
+                const fetched = bootstrapAndInitialize(mod, "foo");
+
+                expect(fetched).toBe(42);
             });
         });
 
@@ -1044,9 +1046,10 @@ describe("facade", function() {
             it("should support {key: value} Objects", function() {
                 class TheType {}
                 mod.service({foo: TheType});
-                mod.run(["foo", function(foo) {
-                    expect(foo).toEqual(jasmine.any(TheType));
-                }]);
+
+                const fetched = bootstrapAndInitialize(mod, "foo");
+
+                expect(fetched).toEqual(jasmine.any(TheType));
             });
         });
 
@@ -1071,9 +1074,10 @@ describe("facade", function() {
 
             it("should support {key: value} Objects", function() {
                 mod.factory({foo() { return 42; }});
-                mod.run(["foo", function(foo) {
-                    expect(foo).toBe(42);
-                }]);
+
+                const fetched = bootstrapAndInitialize(mod, "foo");
+
+                expect(fetched).toBe(42);
             });
         });
 
@@ -1134,9 +1138,10 @@ describe("facade", function() {
 
             it("should support {key: value} Objects", function() {
                 mod.provider({foo: {$get() { return 42; }}});
-                mod.run(["foo", function(foo) {
-                    expect(foo).toBe(42);
-                }]);
+
+                const fetched = bootstrapAndInitialize(mod, "foo");
+
+                expect(fetched).toBe(42);
             });
         });
     });
