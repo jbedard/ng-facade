@@ -814,9 +814,7 @@ module("ng").config(["$provide", function(provide: angular.auto.IProvideService)
 
         function diProvideWrapper(this: angular.auto.IProvideService, key: string | Type<any> | {key: string, value: any}, value?: Function | angular.IServiceProvider | any[]): angular.IServiceProvider | void {
             if (arguments.length === 1) {
-                for (const objKey in <Object>key) {
-                    delegate(objKey, key[objKey]);
-                }
+                return delegate(key);
             }
             else {
                 return delegate(toTypeName(<string | Type<any>>key), <Function | any | any[]>value);
