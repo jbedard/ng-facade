@@ -2,6 +2,7 @@ import "jasmine";
 import "tslib";
 import "reflect-metadata";
 import * as angular from "angular";
+import "angular-mocks";
 
 import { Inject, Injectable, PipeTransform, Pipe, Provider, Input, InputString, InputCallback, Output, EventEmitter, Require, Directive, Component, HostListener, NgModule, Type, OnInit, OnChanges, OnDestroy, DoCheck } from "./facade";
 
@@ -1168,6 +1169,87 @@ describe("facade", function() {
 
                 expect(fetched).toBe(42);
             });
+        });
+    });
+
+    describe("angular-mocks", function() {
+        describe("it(() => module(); ...)", function() {
+            it("should allow injecting @Injectable via inject([]) wrapper", function() {
+                @Injectable()
+                class Foo {}
+
+                angular.mock.module(function($provide: angular.auto.IProvideService) {
+                    $provide.service(Foo, Foo);
+                });
+
+                inject([Foo, function(foo: Foo) {
+                    expect(foo).toEqual(jasmine.any(Foo));
+                }]);
+            });
+
+            it("should allow injecting non-@Injectable provider key via inject([]) wrapper", function() {
+                class Foo {}
+
+                angular.mock.module(function($provide: angular.auto.IProvideService) {
+                    $provide.constant(Foo, 42);
+                });
+
+                inject([Foo, function(foo: number) {
+                    expect(foo).toBe(42);
+                }]);
+            });
+        });
+
+        describe("beforeEach(module())", function() {
+            @Injectable()
+            class FooInjectable {}
+
+            class Foo {}
+
+            @NgModule({
+                id: "inject-testing",
+
+                providers: [
+                    FooInjectable,
+                    {provide: Foo, useClass: Foo}
+                ]
+            })
+            class FooModule {}
+
+            beforeEach(angular.mock.module("inject-testing"));
+
+            it("should allow injecting @Injectable via inject([Type, test])", inject([FooInjectable, function(foo: FooInjectable) {
+                expect(foo).toEqual(jasmine.any(FooInjectable));
+            }]));
+
+            it("should allow injecting non-@Injectable via inject([Type, test])", inject([Foo, function(foo: Foo) {
+                expect(foo).toEqual(jasmine.any(Foo));
+            }]));
+        });
+
+        describe("beforeEach(module(X), ($provider for X))", function() {
+            class Foo {}
+
+            // The module containing the downgradeProvder() style thing
+            // ... which depends on a test-time provided-thing (like the ng2 injector)
+            angular.module("inject-testing2", [])
+                .factory(Foo, ["provided-thing", function(thing) {
+                    return thing;
+                }])
+            ;
+
+            //The test-time provided thing in a beforeEach()
+            beforeEach(angular.mock.module("inject-testing2", function($provide: angular.auto.IProvideService) {
+                $provide.factory("provided-thing", () => new Foo());
+            }));
+
+            it("should allow injecting @Injectable via inject([Type, test])", inject([Foo, function(foo: Foo) {
+                expect(foo).toEqual(jasmine.any(Foo));
+            }]));
+
+            it("should allow injecting non-@Injectable via inject([Type, test])", inject([Foo, function(foo: Foo) {
+                expect(foo).toEqual(jasmine.any(Foo));
+            }]));
         });
     });
 
@@ -2535,6 +2617,9 @@ describe("facade", function() {
     });
 
     it("should not use raw function names as angular service names", function() {
+        spyOn(<any>window, "angular");
+        delete window["angular"].mock;
+
         @Injectable()
         class Service {
         }
@@ -2549,9 +2634,6 @@ describe("facade", function() {
     });
 
     it("should use raw function names when running alongside angular-mock", function() {
-        spyOn(<any>window, "angular");
-        window["angular"].mock = {};
-
         @Injectable()
         class Service {
         }
