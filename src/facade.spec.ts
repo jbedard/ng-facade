@@ -959,15 +959,12 @@ describe("facade", function() {
     });
 
     describe("$provide", function() {
-        let mod: angular.IModule;
-        beforeEach(function() {
-            mod = angular.module("test", []);
-        });
-
-        const O = new (function Obj() { /*empty*/ })();
+        function Obj() { /*empty*/ }
 
         describe("constant", function() {
             it("should allow types as names on IModule", function() {
+                const O = new Obj();
+                const mod = angular.module("test", []);
                 mod.constant(O, 42);
 
                 const fetched = bootstrapAndInitialize(mod, O);
@@ -976,6 +973,8 @@ describe("facade", function() {
             });
 
             it("should allow types as names on $provide", function() {
+                const O = new Obj();
+                const mod = angular.module("test", []);
                 mod.config(["$provide", function(p: angular.auto.IProvideService) {
                     p.constant(O, 42);
                 }]);
@@ -986,6 +985,8 @@ describe("facade", function() {
             });
 
             it("should support {key: value} Objects", function() {
+                const O = new Obj();
+                const mod = angular.module("test", []);
                 mod.constant({foo: 42});
 
                 const fetched = bootstrapAndInitialize(mod, "foo");
@@ -996,6 +997,8 @@ describe("facade", function() {
 
         describe("value", function() {
             it("should allow types as names on IModule", function() {
+                const O = new Obj();
+                const mod = angular.module("test", []);
                 mod.value(O, 42);
 
                 const fetched = bootstrapAndInitialize(mod, O);
@@ -1004,6 +1007,8 @@ describe("facade", function() {
             });
 
             it("should allow types as names on $provide", function() {
+                const O = new Obj();
+                const mod = angular.module("test", []);
                 mod.config(["$provide", function(p: angular.auto.IProvideService) {
                     p.value(O, 42);
                 }]);
@@ -1014,6 +1019,7 @@ describe("facade", function() {
             });
 
             it("should support {key: value} Objects", function() {
+                const mod = angular.module("test", []);
                 mod.value({foo: 42});
 
                 const fetched = bootstrapAndInitialize(mod, "foo");
@@ -1025,6 +1031,8 @@ describe("facade", function() {
         describe("service", function() {
             it("should allow types as names on IModule", function() {
                 class TheType {}
+                const O = new Obj();
+                const mod = angular.module("test", []);
                 mod.service(O, TheType);
 
                 const fetched = bootstrapAndInitialize(mod, O);
@@ -1034,6 +1042,8 @@ describe("facade", function() {
 
             it("should allow types as names on $provide", function() {
                 class TheType {}
+                const O = new Obj();
+                const mod = angular.module("test", []);
                 mod.config(["$provide", function(p: angular.auto.IProvideService) {
                     p.service(O, TheType);
                 }]);
@@ -1045,6 +1055,7 @@ describe("facade", function() {
 
             it("should support {key: value} Objects", function() {
                 class TheType {}
+                const mod = angular.module("test", []);
                 mod.service({foo: TheType});
 
                 const fetched = bootstrapAndInitialize(mod, "foo");
@@ -1055,6 +1066,8 @@ describe("facade", function() {
 
         describe("factory", function() {
             it("should allow types as names on IModule", function() {
+                const O = new Obj();
+                const mod = angular.module("test", []);
                 mod.factory(O, function() { return 42; });
 
                 const fetched = bootstrapAndInitialize(mod, O);
@@ -1063,6 +1076,8 @@ describe("facade", function() {
             });
 
             it("should allow types as names on $provide", function() {
+                const O = new Obj();
+                const mod = angular.module("test", []);
                 mod.config(["$provide", function(p: angular.auto.IProvideService) {
                     p.factory(O, function() { return 42; });
                 }]);
@@ -1073,6 +1088,7 @@ describe("facade", function() {
             });
 
             it("should support {key: value} Objects", function() {
+                const mod = angular.module("test", []);
                 mod.factory({foo() { return 42; }});
 
                 const fetched = bootstrapAndInitialize(mod, "foo");
@@ -1086,6 +1102,8 @@ describe("facade", function() {
                 let del: TheType | undefined;
 
                 class TheType {}
+                const O = new Obj();
+                const mod = angular.module("test", []);
                 mod.service(O, TheType);
                 mod.decorator(O, ["$delegate", function($delegate) {
                     del = $delegate;
@@ -1102,6 +1120,8 @@ describe("facade", function() {
                 let del: TheType | undefined;
 
                 class TheType {}
+                const O = new Obj();
+                const mod = angular.module("test", []);
                 mod.service(O, TheType);
 
                 mod.config(["$provide", function(p: angular.auto.IProvideService) {
@@ -1119,6 +1139,8 @@ describe("facade", function() {
 
         describe("provider", function() {
             it("should allow providing by type on IModule", function() {
+                const O = new Obj();
+                const mod = angular.module("test", []);
                 mod.provider(O, {$get() { return 42; }});
 
                 const fetched = bootstrapAndInitialize(mod, O);
@@ -1127,6 +1149,8 @@ describe("facade", function() {
             });
 
             it("should allow providing by type on $provide", function() {
+                const O = new Obj();
+                const mod = angular.module("test", []);
                 mod.config(["$provide", function(p: angular.auto.IProvideService) {
                     p.provider(O, {$get() { return 42; }});
                 }]);
@@ -1137,6 +1161,7 @@ describe("facade", function() {
             });
 
             it("should support {key: value} Objects", function() {
+                const mod = angular.module("test", []);
                 mod.provider({foo: {$get() { return 42; }}});
 
                 const fetched = bootstrapAndInitialize(mod, "foo");
