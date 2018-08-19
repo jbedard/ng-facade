@@ -4,22 +4,22 @@ Angular es6 annotations for AngularJS. Attemps to be a close as possible to Angu
 
 
 
-# Injectable, Inject
+# InjectableFacade, InjectFacade
 
-Classes marked with `@Injectable()` can:
+Classes marked with `@InjectableFacade()` can:
 * be placed anywhere a traditional service string name is placed
-* use `@Inject('serviceName')` to inject traditional services by string name
-* inject other `@Injectable()` services by TypeScript type in the constructor
+* use `@InjectFacade('serviceName')` to inject traditional services by string name
+* inject other `@InjectableFacade()` services by TypeScript type in the constructor
 
 
 ```typescript
-import {Injectable, Inject, NgModule} from "ng-facade";
+import {InjectableFacade, InjectFacade, NgModuleFacade} from "ng-facade";
 
-@Injectable()
+@InjectableFacade()
 class Logger {
     constructor(
         //Injection of non ng-facade services
-        @Inject("$http") private http,
+        @InjectFacade("$http") private http,
 
         //Injection of ng-facade style services
         private otherService: OtherService
@@ -28,10 +28,10 @@ class Logger {
     public log(msg: string) { ... }
 }
 
-@Injectable()
+@InjectableFacade()
 class OtherService {}
 
-@NgModule({
+@NgModuleFacade({
     id: "demo",
     providers: [Logger, OtherService]
 })
@@ -42,11 +42,11 @@ class MyModule {}
 # $injector
 
 ```typescript
-@Injectable()
+@InjectableFacade()
 class Service {
 }
 
-@NgModule({id: "test", providers: [Service]})
+@NgModuleFacade({id: "test", providers: [Service]})
 class Mod {}
 
 ...
@@ -75,9 +75,9 @@ module.service("ServiceName", ["$rootScope", Service, function ServiceClass() {
 # NgModule
 
 ```typescript
-import {NgModule} from "ng-facade";
+import {NgModuleFacade} from "ng-facade";
 
-@NgModule({
+@NgModuleFacade({
     id: "my-module",
 
     imports: [
@@ -87,16 +87,16 @@ import {NgModule} from "ng-facade";
     ],
 
     providers: [
-        //TypeProvider
+        //TypeProviderFacade
         InjectableClass,
 
-        //FactoryProvider
+        //FactoryProviderFacade
         {
             provide: Provided,
             useFactory: function() { return ... }
         },
 
-        //FactoryProvider + use
+        //FactoryProviderFacade + use
         {
             provide: Provided,
             useFactory: function(AngularJSService, service: ServiceClass) { return ... }
@@ -106,20 +106,20 @@ import {NgModule} from "ng-facade";
             ]
         },
 
-        //ExistingProvider
+        //ExistingProviderFacade
         SuperLogger,
         {
             provide: Logger
             useExisting: SuperLogger
         },
 
-        //ClassProvider
+        //ClassProviderFacade
         {
             provide: Provided,
             useClass: ProvidedImpl
         },
 
-        //PipeTransform (ClassProvider)
+        //PipeTransformFacade (ClassProviderFacade)
         MyPipe
     ],
 
@@ -130,13 +130,13 @@ class MyModule {}
 
 
 
-# Component, Directive
+# ComponentFacade, DirectiveFacade
 
-`@Component` and `@Directive` annotations can be used to declare component/directives. The classes must then be passed to the `@NgModule` `declarations`.
+`@ComponentFacade` and `@DirectiveFacade` annotations can be used to declare component/directives. The classes must then be passed to the `@NgModuleFacade` `declarations`.
 
 
 ```typescript
-@Component({
+@ComponentFacade({
     selector: "comp-selector",
 
     //Optional
@@ -148,32 +148,32 @@ class MyModule {}
 class Comp {}
 
 
-@Directive({
+@DirectiveFacade({
     selector: "element" | ".class" | "[attribute]"
 })
 class Dir {}
 
 
-@NgModule({id: "compMod", declarations: [Comp, Dir]})
+@NgModuleFacade({id: "compMod", declarations: [Comp, Dir]})
 class Mod {}
 ```
 
 
 
-# Pipe, PipeTransform
+# PipeFacade, PipeTransformFacade
 
 ```typescript
-import {Pipe, PipeTransform, NgModule} from "ng-facade";
+import {PipeFacade, PipeTransformFacade, NgModuleFacade} from "ng-facade";
 
-@Pipe({name: "myPipe"})
-class MyPipe implements PipeTransform {
+@PipeFacade({name: "myPipe"})
+class MyPipe implements PipeTransformFacade {
     transform(x, y) { return x + y; }
 }
 
-@NgModule({id: "pipeMod", providers: [P]})
+@NgModuleFacade({id: "pipeMod", providers: [P]})
 class Mod {}
 
-@NgModule({
+@NgModuleFacade({
     id: "demo",
     providers: [MyPipe]
 })
@@ -186,16 +186,16 @@ class MyModule {}
 
 
 
-# @Input, @InputString, @InputCallback
+# @InputFacade, @InputStringFacade, @InputCallbackFacade
 
 
 
-# @Output, EventEmitter
+# @OutputFacade, EventEmitterFacade
 
 
 
-# @Require
+# @RequireFacade
 
 
 
-# @HostListener
+# @HostListenerFacade
