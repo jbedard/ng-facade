@@ -5,6 +5,7 @@ import * as angular from "angular";
 import "angular-mocks";
 
 import { Inject, Injectable, PipeTransform, Pipe, Provider, Input, InputString, InputCallback, Output, EventEmitter, Require, Directive, Component, HostListener, NgModule, Type, OnInit, OnChanges, OnDestroy, DoCheck } from "./facade";
+import "./facade-mocks";
 
 //Copied from facade.ts to avoid exposing publicly
 const OUTPUT_BOUND_CALLBACK_PREFIX = "__event_";

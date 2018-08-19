@@ -2,15 +2,15 @@
 # yarn lockfile v1
 
 
-"@types/angular-mocks@^1.5.11":
-  version "1.5.11"
-  resolved "https://registry.yarnpkg.com/@types/angular-mocks/-/angular-mocks-1.5.11.tgz#d5bbefbf742f2196071bda0fe051878b6f4fd72c"
+"@types/angular-mocks@^1.7.0":
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@types/angular-mocks/-/angular-mocks-1.7.0.tgz#310d999a3c47c10ecd8eef466b5861df84799429"
   dependencies:
     "@types/angular" "*"
 
-"@types/angular@*", "@types/angular@^1.6.14":
-  version "1.6.41"
-  resolved "https://registry.yarnpkg.com/@types/angular/-/angular-1.6.41.tgz#627fe0206461fd6fb1135dad780fa8257bbee627"
+"@types/angular@*", "@types/angular@^1.6.50":
+  version "1.6.50"
+  resolved "https://registry.yarnpkg.com/@types/angular/-/angular-1.6.50.tgz#8b6599088d80f68ef0cad7d3a2062248ebe72b3d"
 
 "@types/jasmine@^2.5.47":
   version "2.8.5"
@@ -78,13 +78,13 @@ amdefine@>=0.0.4, amdefine@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/amdefine/-/amdefine-1.0.1.tgz#4a5282ac164729e93619bcfd3ad151f817ce91f5"
 
-angular-mocks@^1.6.4:
-  version "1.6.8"
-  resolved "https://registry.yarnpkg.com/angular-mocks/-/angular-mocks-1.6.8.tgz#ba2120057b4edaa56492d8789ddfbc8f18afa3c5"
+angular-mocks@^1.7.0:
+  version "1.7.3"
+  resolved "https://registry.yarnpkg.com/angular-mocks/-/angular-mocks-1.7.3.tgz#6568d50e64e81180273f9ec6a062ea255159f6ac"
 
-angular@^1.6.4:
-  version "1.6.8"
-  resolved "https://registry.yarnpkg.com/angular/-/angular-1.6.8.tgz#5be378a58be91a5489e78b59c4518cd9fd273ffb"
+angular@^1.7.0:
+  version "1.7.3"
+  resolved "https://registry.yarnpkg.com/angular/-/angular-1.7.3.tgz#0f25a661d079fc84d5ccc877a2ef9d7178575ddb"
 
 ansi-gray@^0.1.1:
   version "0.1.1"
