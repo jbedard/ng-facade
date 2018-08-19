@@ -4,7 +4,7 @@ import "reflect-metadata";
 import * as angular from "angular";
 import "angular-mocks";
 
-import { Inject, Injectable, PipeTransform, Pipe, Provider, Input, InputString, InputCallback, Output, EventEmitter, Require, Directive, Component, HostListener, NgModule, Type, OnInit, OnChanges, OnDestroy, DoCheck } from "./facade";
+import { InjectFacade, InjectableFacade, PipeTransformFacade, PipeFacade, ProviderFacade, InputFacade, InputStringFacade, InputCallbackFacade, OutputFacade, EventEmitterFacade, RequireFacade, DirectiveFacade, ComponentFacade, HostListenerFacade, NgModuleFacade, TypeFacade, OnInitFacade, OnChangesFacade, OnDestroyFacade, DoCheckFacade } from "./facade";
 import "./facade-mocks";
 
 //Copied from facade.ts to avoid exposing publicly
@@ -28,7 +28,7 @@ describe("facade", function() {
         angular.element(toDestroy.splice(0)).remove();
     });
 
-    function bootstrapAndInitialize<T>(mod: string | angular.IModule, what: Type<T>): T;
+    function bootstrapAndInitialize<T>(mod: string | angular.IModule, what: TypeFacade<T>): T;
     function bootstrapAndInitialize(mod: string | angular.IModule, what: any): any;
     function bootstrapAndInitialize(mod: string | angular.IModule, what: any) {
         const modName = typeof mod === "string" ? mod : mod.name;
@@ -82,11 +82,11 @@ describe("facade", function() {
         return angular.extend({module}, mockModule);
     }
 
-    describe("NgModule", function() {
+    describe("NgModuleFacade", function() {
         it("should invoke angular.module(id, [])", function() {
             const spies = createMockModule();
 
-            @NgModule({
+            @NgModuleFacade({
                 id: "foo"
             })
             class Mod {}
@@ -97,7 +97,7 @@ describe("facade", function() {
         it("should invoke constructor on init", function() {
             const spies = createMockModule();
 
-            @NgModule({
+            @NgModuleFacade({
                 id: "bar"
             })
             class Mod {}
@@ -109,7 +109,7 @@ describe("facade", function() {
         it("should pass imports angular.module(id, [modules])", function() {
             const spies = createMockModule();
 
-            @NgModule({
+            @NgModuleFacade({
                 id: "foo",
                 imports: ["mydep"]
             })
@@ -121,12 +121,12 @@ describe("facade", function() {
         it("should support passing angular modules as imports)", function() {
             const spies = createMockModule();
 
-            @NgModule({
+            @NgModuleFacade({
                 id: "mydep"
             })
             class DepMod {}
 
-            @NgModule({
+            @NgModuleFacade({
                 id: "foo",
                 imports: [angular.module("mydep")]
             })
@@ -136,15 +136,15 @@ describe("facade", function() {
             expect(spies.module).toHaveBeenCalledWith("foo", ["mydep"]);
         });
 
-        it("should support passing @NgModule() classes as imports)", function() {
+        it("should support passing @NgModuleFacade() classes as imports)", function() {
             const spies = createMockModule();
 
-            @NgModule({
+            @NgModuleFacade({
                 id: "mydep"
             })
             class DepMod {}
 
-            @NgModule({
+            @NgModuleFacade({
                 id: "foo",
                 imports: [DepMod]
             })
@@ -158,10 +158,10 @@ describe("facade", function() {
         it("should support providers with plain classes", function() {
             const spies = createMockModule();
 
-            @Injectable()
+            @InjectableFacade()
             class Foo {}
 
-            @NgModule({
+            @NgModuleFacade({
                 id: "test", providers: [Foo]
             })
             class Mod {}
@@ -169,11 +169,11 @@ describe("facade", function() {
             expect(spies.service).toHaveBeenCalledWith(jasmine.any(String), Foo);
         });
 
-        //NOTE: this may be stricter then Angular where @Injectable is optional
-        it("should throw if a plain-class provider is not marked as injectable", function() {
+        //NOTE: this may be stricter then Angular where @InjectableFacade is optional
+        it("should throw if a plain-class provider is not marked as InjectableFacade", function() {
             class Foo {}
 
-            @NgModule({
+            @NgModuleFacade({
                 id: "test", providers: [Foo]
             })
             class Mod {}
@@ -190,7 +190,7 @@ describe("facade", function() {
 
                 let theNewFoo;
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test", providers: [{provide: Foo, useFactory() { return theNewFoo = new Foo(); }}]
                 })
                 class Mod {}
@@ -204,7 +204,7 @@ describe("facade", function() {
             it("should support any key object", function() {
                 const Foo = {};
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test", providers: [{provide: Foo, useFactory() { return 123; }}]
                 })
                 class Mod {}
@@ -214,13 +214,13 @@ describe("facade", function() {
                 expect(instance).toBe(123);
             });
 
-            it("should support injectable provider", function() {
-                @Injectable()
+            it("should support InjectableFacade provider", function() {
+                @InjectableFacade()
                 class Foo {}
 
                 let theNewFoo;
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test", providers: [{provide: Foo, useFactory() { return theNewFoo = new Foo(); }}]
                 })
                 class Mod {}
@@ -232,14 +232,14 @@ describe("facade", function() {
             });
 
             it("should support deps to inject into factory method", function() {
-                @Injectable()
+                @InjectableFacade()
                 class Foo {}
 
                 class Bar {
                     constructor(public a, public b) {}
                 }
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test",
                     providers: [Foo, {
                         provide: Bar,
@@ -257,14 +257,14 @@ describe("facade", function() {
             });
 
             it("should support deps to inject into factory method declared out of order", function() {
-                @Injectable()
+                @InjectableFacade()
                 class Foo {}
 
                 class Bar {
                     constructor(public a, public b) {}
                 }
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test",
                     providers: [{
                         provide: Bar,
@@ -282,7 +282,7 @@ describe("facade", function() {
             });
 
             it("should support factory.$inject to inject into factory method", function() {
-                @Injectable()
+                @InjectableFacade()
                 class Foo {}
 
                 class Bar {
@@ -292,7 +292,7 @@ describe("facade", function() {
                 function factory(a, b) { return new Bar(a, b); }
                 (<any>factory).$inject = ["$rootScope", Foo];
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test",
                     providers: [Foo, {
                         provide: Bar,
@@ -309,7 +309,7 @@ describe("facade", function() {
             });
 
             it("should throw if both factory.$inject and deps declared", function() {
-                @Injectable()
+                @InjectableFacade()
                 class Foo {}
 
                 class Bar {
@@ -320,7 +320,7 @@ describe("facade", function() {
                 (<any>factory).$inject = ["$rootScope", Foo];
 
                 expect(function() {
-                    @NgModule({
+                    @NgModuleFacade({
                         id: "test",
                         providers: [Foo, {
                             provide: Bar,
@@ -335,14 +335,14 @@ describe("facade", function() {
         });
 
         describe("useExisting", function() {
-            it("should reference existing injectable", function() {
-                @Injectable()
+            it("should reference existing InjectableFacade", function() {
+                @InjectableFacade()
                 class Foo {}
 
-                @Injectable()
+                @InjectableFacade()
                 class Bar {}
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test", providers: [Foo, {provide: Bar, useExisting: Foo}]
                 })
                 class Mod {}
@@ -353,12 +353,12 @@ describe("facade", function() {
             });
 
             it("should support any key", function() {
-                @Injectable()
+                @InjectableFacade()
                 class Foo {}
 
                 const Bar = {};
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test", providers: [Foo, {provide: Bar, useExisting: Foo}]
                 })
                 class Mod {}
@@ -369,12 +369,12 @@ describe("facade", function() {
             });
 
             it("should support declared out of order", function() {
-                @Injectable()
+                @InjectableFacade()
                 class Foo {}
 
                 const Bar = {};
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test", providers: [{provide: Bar, useExisting: Foo}, Foo]
                 })
                 class Mod {}
@@ -389,7 +389,7 @@ describe("facade", function() {
 
                 class Bar {}
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test", providers: [{provide: Foo, useExisting: Bar}]
                 })
                 class Mod {}
@@ -403,13 +403,13 @@ describe("facade", function() {
 
         describe("useClass", function() {
             it("should be supported", function() {
-                @Injectable()
+                @InjectableFacade()
                 class Foo {}
 
-                @Injectable()
+                @InjectableFacade()
                 class Bar extends Foo {}
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test", providers: [{provide: Foo, useClass: Bar}]
                 })
                 class Mod {}
@@ -420,13 +420,13 @@ describe("facade", function() {
             });
 
             it("should create a new instance", function() {
-                @Injectable()
+                @InjectableFacade()
                 class Foo {}
 
-                @Injectable()
+                @InjectableFacade()
                 class Bar extends Foo {}
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test", providers: [Bar, {provide: Foo, useClass: Bar}]
                 })
                 class Mod {}
@@ -443,7 +443,7 @@ describe("facade", function() {
 
                 class Bar {}
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test", providers: [{provide: Foo, useClass: Bar}]
                 })
                 class Mod {}
@@ -454,17 +454,17 @@ describe("facade", function() {
             });
 
             it("should support injection into used class", function() {
-                @Injectable()
+                @InjectableFacade()
                 class Baz {}
 
                 class Foo {}
 
-                @Injectable()
+                @InjectableFacade()
                 class Bar extends Foo {
                     constructor(public baz: Baz) { super(); }
                 }
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test", providers: [Baz, {provide: Foo, useClass: Bar}]
                 })
                 class Mod {}
@@ -476,17 +476,17 @@ describe("facade", function() {
             });
 
             it("should support injection into used class when declared out of order", function() {
-                @Injectable()
+                @InjectableFacade()
                 class Baz {}
 
                 class Foo {}
 
-                @Injectable()
+                @InjectableFacade()
                 class Bar extends Foo {
                     constructor(public baz: Baz) { super(); }
                 }
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test", providers: [{provide: Foo, useClass: Bar}, Baz]
                 })
                 class Mod {}
@@ -497,9 +497,9 @@ describe("facade", function() {
                 expect($injector.get(Foo).baz).toEqual(jasmine.any(Baz));
             });
 
-            //NOTE: this may be stricter then Angular where @Injectable is optional
-            it("should throw when trying to inject into non-@Injectable useClass", function() {
-                @Injectable()
+            //NOTE: this may be stricter then Angular where @InjectableFacade is optional
+            it("should throw when trying to inject into non-@InjectableFacade useClass", function() {
+                @InjectableFacade()
                 class Baz {}
 
                 class Foo {}
@@ -508,7 +508,7 @@ describe("facade", function() {
                     constructor(public baz: Baz) { super(); }
                 }
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test", providers: [Baz, {provide: Foo, useClass: Bar}]
                 })
                 class Mod {}
@@ -527,7 +527,7 @@ describe("facade", function() {
                 const key = Foo;
                 const value = new Foo();
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test", providers: [{provide: key, useValue: value}]
                 })
                 class Mod {}
@@ -541,7 +541,7 @@ describe("facade", function() {
                 const key = {};
                 const value = 42;
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test", providers: [{provide: key, useValue: value}]
                 })
                 class Mod {}
@@ -557,7 +557,7 @@ describe("facade", function() {
                 class Bar extends Foo {
                 }
 
-                @NgModule({
+                @NgModuleFacade({
                     id: "test", providers: [{provide: Foo, useValue: new Bar()}]
                 })
                 class Mod {}
@@ -570,7 +570,7 @@ describe("facade", function() {
 
         it("should throw for unsupported declaration types", function() {
             expect(function() {
-                @NgModule({
+                @NgModuleFacade({
                     id: "badDeclarationsMod",
                     declarations: [class C {}]
                 })
@@ -579,34 +579,34 @@ describe("facade", function() {
             .toThrow();
         });
 
-        it("should delegate @Pipe({name}) to module.filter(name, [PipeTransform, factory])", function() {
+        it("should delegate @PipeFacade({name}) to module.filter(name, [PipeTransformFacade, factory])", function() {
             const modSpies = createMockModule();
 
-            @Pipe({name: "myPipe"})
-            class P implements PipeTransform {
+            @PipeFacade({name: "myPipe"})
+            class P implements PipeTransformFacade {
                 transform(x) { return x; }
             }
 
-            @NgModule({id: "pipeMod", providers: [P]})
+            @NgModuleFacade({id: "pipeMod", providers: [P]})
             class Mod {}
 
             expect(modSpies.filter).toHaveBeenCalledWith("myPipe", [P, jasmine.any(Function)]);
         });
     });
 
-    describe("@Pipe", function() {
-        it("should invoke @Pipe() constructor when invoking filter factory", function() {
+    describe("@PipeFacade", function() {
+        it("should invoke @PipeFacade() constructor when invoking filter factory", function() {
             const constructorSpy = jasmine.createSpy("constructor");
 
-            @Pipe({name: "myPipe"})
-            class P implements PipeTransform {
+            @PipeFacade({name: "myPipe"})
+            class P implements PipeTransformFacade {
                 constructor() {
                     constructorSpy.apply(this, arguments);
                 }
                 transform(x) { return x; }
             }
 
-            @NgModule({id: "test", providers: [P]})
+            @NgModuleFacade({id: "test", providers: [P]})
             class Mod {}
 
             expect(constructorSpy).not.toHaveBeenCalled();
@@ -614,18 +614,18 @@ describe("facade", function() {
             expect(constructorSpy).toHaveBeenCalledWith();
         });
 
-        it("should invoke @Pipe() constructor with @Inject() params invoking filter factory", function() {
+        it("should invoke @PipeFacade() constructor with @InjectFacade() params invoking filter factory", function() {
             const constructorSpy = jasmine.createSpy("constructor");
 
-            @Pipe({name: "myPipe"})
-            class P implements PipeTransform {
-                constructor(@Inject("$q") foobar, @Inject("$q") private other) {
+            @PipeFacade({name: "myPipe"})
+            class P implements PipeTransformFacade {
+                constructor(@InjectFacade("$q") foobar, @InjectFacade("$q") private other) {
                     constructorSpy.apply(this, arguments);
                 }
                 transform(x) { return x; }
             }
 
-            @NgModule({id: "test", providers: [P]})
+            @NgModuleFacade({id: "test", providers: [P]})
             class Mod {}
 
             expect(constructorSpy).not.toHaveBeenCalled();
@@ -637,13 +637,13 @@ describe("facade", function() {
             expect(arg1).toBe(arg0);
         });
 
-        it("should be injectable", function() {
-            @Pipe({name: "myPipe"})
-            class P implements PipeTransform {
+        it("should be InjectableFacade", function() {
+            @PipeFacade({name: "myPipe"})
+            class P implements PipeTransformFacade {
                 transform(x) { return x; }
             }
 
-            @NgModule({id: "test", providers: [P]})
+            @NgModuleFacade({id: "test", providers: [P]})
             class Mod {}
 
             const instance = bootstrapAndInitialize("test", P);
@@ -654,14 +654,14 @@ describe("facade", function() {
         it("should convert class P { transform() } to a $filter method", function() {
             const transformSpy = jasmine.createSpy("transform");
 
-            @Pipe({name: "resultPipe"})
-            class P implements PipeTransform {
+            @PipeFacade({name: "resultPipe"})
+            class P implements PipeTransformFacade {
                 transform(...args) {
                     return args.reduce((t, x) => t + x, 0);
                 }
             }
 
-            @NgModule({id: "test", providers: [P]})
+            @NgModuleFacade({id: "test", providers: [P]})
             class Mod {}
 
             const myPipe = bootstrapAndInitialize("test", "resultPipeFilter");
@@ -675,14 +675,14 @@ describe("facade", function() {
         it("should convert class P { transform() } to a P-instance bound filter method", function() {
             const transformSpy = jasmine.createSpy("transform");
 
-            @Pipe({name: "argsTest"})
-            class P implements PipeTransform {
+            @PipeFacade({name: "argsTest"})
+            class P implements PipeTransformFacade {
                 transform() {
                     transformSpy.apply(this, arguments);
                 }
             }
 
-            @NgModule({id: "test", providers: [P]})
+            @NgModuleFacade({id: "test", providers: [P]})
             class Mod {}
 
             const myPipe = bootstrapAndInitialize("test", "argsTestFilter");
@@ -693,39 +693,39 @@ describe("facade", function() {
             expect(transformSpy).toHaveBeenCalledWith(1, 2, 3);
         });
 
-        it("should default @Pipe() to non-$stateful", function() {
-            @Pipe({name: "noPure"})
-            class P implements PipeTransform {
+        it("should default @PipeFacade() to non-$stateful", function() {
+            @PipeFacade({name: "noPure"})
+            class P implements PipeTransformFacade {
                 transform(x) { return x; }
             }
 
-            @NgModule({id: "test", providers: [P]})
+            @NgModuleFacade({id: "test", providers: [P]})
             class Mod {}
 
             const noPure = bootstrapAndInitialize("test", "noPureFilter");
             expect(noPure.$stateful).toBe(false);
         });
 
-        it("should convert @Pipe({pure: true}) to non-$stateful", function() {
-            @Pipe({name: "pureTrue", pure: true})
-            class P implements PipeTransform {
+        it("should convert @PipeFacade({pure: true}) to non-$stateful", function() {
+            @PipeFacade({name: "pureTrue", pure: true})
+            class P implements PipeTransformFacade {
                 transform(x) { return x; }
             }
 
-            @NgModule({id: "test", providers: [P]})
+            @NgModuleFacade({id: "test", providers: [P]})
             class Mod {}
 
             const pureTrue = bootstrapAndInitialize("test", "pureTrueFilter");
             expect(pureTrue.$stateful).toBe(false);
         });
 
-        it("should convert @Pipe({pure: false}) to $stateful", function() {
-            @Pipe({name: "pureFalse", pure: false})
-            class P implements PipeTransform {
+        it("should convert @PipeFacade({pure: false}) to $stateful", function() {
+            @PipeFacade({name: "pureFalse", pure: false})
+            class P implements PipeTransformFacade {
                 transform(x) { return x; }
             }
 
-            @NgModule({id: "test", providers: [P]})
+            @NgModuleFacade({id: "test", providers: [P]})
             class Mod {}
 
             const pureFalse = bootstrapAndInitialize("test", "pureFalseFilter");
@@ -733,31 +733,31 @@ describe("facade", function() {
         });
     });
 
-    describe("@Injectable", function() {
+    describe("@InjectableFacade", function() {
         it("should go on classes even though it doesn't do anything", function() {
-            @Injectable()
+            @InjectableFacade()
             class Foo {}
 
             expect(Foo).toBeDefined();
         });
 
-        it("should be required when providing a service to NgModule", function() {
+        it("should be required when providing a service to NgModuleFacade", function() {
             class Foo {}
-            @NgModule({id: "test", providers: [Foo]})
+            @NgModuleFacade({id: "test", providers: [Foo]})
             class Mod {}
             expect(function() { bootstrapAndInitialize("test", Foo); }).toThrow();
         });
 
         it("should inject via TypeScript types", function m() {
-            @Injectable()
+            @InjectableFacade()
             class Foo {}
 
-            @Injectable()
+            @InjectableFacade()
             class Bar {
                 constructor(public f: Foo) {}
             }
 
-            @NgModule({id: "test", providers: [Foo, Bar]})
+            @NgModuleFacade({id: "test", providers: [Foo, Bar]})
             class Mod {}
 
             const bar: Bar = bootstrapAndInitialize("test", Bar);
@@ -765,13 +765,13 @@ describe("facade", function() {
             expect(bar.f).toEqual(jasmine.any(Foo));
         });
 
-        it("should inject other services via @Inject('thing')", function() {
-            @Injectable()
+        it("should inject other services via @InjectFacade('thing')", function() {
+            @InjectableFacade()
             class Foo {
-                constructor(@Inject("$rootScope") public theScope) {}
+                constructor(@InjectFacade("$rootScope") public theScope) {}
             }
 
-            @NgModule({id: "test", providers: [Foo]})
+            @NgModuleFacade({id: "test", providers: [Foo]})
             class Mod {}
 
             const bar: Foo = bootstrapAndInitialize("test", Foo);
@@ -781,22 +781,22 @@ describe("facade", function() {
         });
 
         it("should inject via TypeScript types on private/public fields and params", function() {
-            @Injectable()
+            @InjectableFacade()
             class Foo {}
 
-            @Injectable()
+            @InjectableFacade()
             class Bar {
                 constructor(public f: Foo) {}
             }
 
-            @Injectable()
+            @InjectableFacade()
             class Baz {
                 constructor(public b: Bar, f: Foo) {
                     expect(f).toBe(this.b.f);
                 }
             }
 
-            @NgModule({id: "test", providers: [Foo, Bar, Baz]})
+            @NgModuleFacade({id: "test", providers: [Foo, Bar, Baz]})
             class Mod {}
 
             const baz = bootstrapAndInitialize("test", Baz);
@@ -804,16 +804,16 @@ describe("facade", function() {
             expect(baz.b).toEqual(jasmine.any(Bar));
         });
 
-        it("should inject mix of @Inject('thing') and via TypeScript types", function() {
-            @Injectable()
+        it("should inject mix of @InjectFacade('thing') and via TypeScript types", function() {
+            @InjectableFacade()
             class Foo {}
 
-            @Injectable()
+            @InjectableFacade()
             class Bar {
-                constructor(public f: Foo, @Inject("$rootScope") public s) {}
+                constructor(public f: Foo, @InjectFacade("$rootScope") public s) {}
             }
 
-            @NgModule({id: "test", providers: [Foo, Bar]})
+            @NgModuleFacade({id: "test", providers: [Foo, Bar]})
             class Mod {}
 
             const bar = bootstrapAndInitialize("test", Bar);
@@ -823,18 +823,18 @@ describe("facade", function() {
         });
 
         it("should inherited parent class constructors", function() {
-            @Injectable()
+            @InjectableFacade()
             class Baz {}
 
-            @Injectable()
+            @InjectableFacade()
             class Bar {
-                constructor(public b: Baz, @Inject("$rootScope") public s) {}
+                constructor(public b: Baz, @InjectFacade("$rootScope") public s) {}
             }
 
-            @Injectable()
+            @InjectableFacade()
             class Foo extends Bar {}
 
-            @NgModule({id: "test", providers: [Foo, Bar, Baz]})
+            @NgModuleFacade({id: "test", providers: [Foo, Bar, Baz]})
             class Mod {}
 
             const foo = bootstrapAndInitialize("test", Foo);
@@ -846,19 +846,19 @@ describe("facade", function() {
         it("should override parent constructor metadata", function() {
             class Baz {}
 
-            @Injectable()
+            @InjectableFacade()
             class Bar {
                 constructor(public b: Baz, public n: number) {}
             }
 
-            @Injectable()
+            @InjectableFacade()
             class Foo extends Bar {
                 constructor() {
                     super(new Baz(), 42);
                 }
             }
 
-            @NgModule({id: "test", providers: [Foo, Bar]})
+            @NgModuleFacade({id: "test", providers: [Foo, Bar]})
             class Mod {}
 
             const foo = bootstrapAndInitialize("test", Foo);
@@ -868,10 +868,10 @@ describe("facade", function() {
         });
     });
 
-    describe("@Inject", function() {
-        it("should fill the $inject array based on constructor @Inject arguments", function() {
+    describe("@InjectFacade", function() {
+        it("should fill the $inject array based on constructor @InjectFacade arguments", function() {
             class Foo {
-                constructor(@Inject("foo") private myFoo, other, @Inject("bar") public myBar) {}
+                constructor(@InjectFacade("foo") private myFoo, other, @InjectFacade("bar") public myBar) {}
             }
 
             expect(Foo.$inject).toEqual(<string[]>["foo", undefined, "bar"]);
@@ -881,13 +881,13 @@ describe("facade", function() {
     describe("$injector", function() {
         describe("get/has", function() {
             it("should convert types to name when invoking has/get", function() {
-                @Injectable()
+                @InjectableFacade()
                 class Service {
                 }
 
                 class NotService {}
 
-                @NgModule({id: "test", providers: [Service]})
+                @NgModuleFacade({id: "test", providers: [Service]})
                 class Mod {}
 
                 const $injector: angular.auto.IInjectorService = bootstrapAndInitialize("test", "$injector");
@@ -901,11 +901,11 @@ describe("facade", function() {
 
         describe("instantiate", function() {
             it("should support passing types", function() {
-                @Injectable()
+                @InjectableFacade()
                 class Service {
                 }
 
-                @NgModule({id: "test", providers: [Service]})
+                @NgModuleFacade({id: "test", providers: [Service]})
                 class Mod {}
 
                 const $injector: angular.auto.IInjectorService = bootstrapAndInitialize("test", "$injector");
@@ -921,11 +921,11 @@ describe("facade", function() {
 
         describe("invoke", function() {
             it("should support passing types in the [..., func] $inject array", function() {
-                @Injectable()
+                @InjectableFacade()
                 class Service {
                 }
 
-                @NgModule({id: "test", providers: [Service]})
+                @NgModuleFacade({id: "test", providers: [Service]})
                 class Mod {}
 
                 const $injector: angular.auto.IInjectorService = bootstrapAndInitialize("test", "$injector");
@@ -939,11 +939,11 @@ describe("facade", function() {
             });
 
             it("should support passing types in the func.$inject array", function() {
-                @Injectable()
+                @InjectableFacade()
                 class Service {
                 }
 
-                @NgModule({id: "test", providers: [Service]})
+                @NgModuleFacade({id: "test", providers: [Service]})
                 class Mod {}
 
                 const $injector: angular.auto.IInjectorService = bootstrapAndInitialize("test", "$injector");
@@ -1175,8 +1175,8 @@ describe("facade", function() {
 
     describe("angular-mocks", function() {
         describe("it(() => module(); ...)", function() {
-            it("should allow injecting @Injectable via inject([]) wrapper", function() {
-                @Injectable()
+            it("should allow injecting @InjectableFacade via inject([]) wrapper", function() {
+                @InjectableFacade()
                 class Foo {}
 
                 angular.mock.module(function($provide: angular.auto.IProvideService) {
@@ -1188,7 +1188,7 @@ describe("facade", function() {
                 }]);
             });
 
-            it("should allow injecting non-@Injectable provider key via inject([]) wrapper", function() {
+            it("should allow injecting non-@InjectableFacade provider key via inject([]) wrapper", function() {
                 class Foo {}
 
                 angular.mock.module(function($provide: angular.auto.IProvideService) {
@@ -1202,16 +1202,16 @@ describe("facade", function() {
         });
 
         describe("beforeEach(module())", function() {
-            @Injectable()
-            class FooInjectable {}
+            @InjectableFacade()
+            class FooInjectableFacade {}
 
             class Foo {}
 
-            @NgModule({
+            @NgModuleFacade({
                 id: "inject-testing",
 
                 providers: [
-                    FooInjectable,
+                    FooInjectableFacade,
                     {provide: Foo, useClass: Foo}
                 ]
             })
@@ -1219,11 +1219,11 @@ describe("facade", function() {
 
             beforeEach(angular.mock.module("inject-testing"));
 
-            it("should allow injecting @Injectable via inject([Type, test])", inject([FooInjectable, function(foo: FooInjectable) {
-                expect(foo).toEqual(jasmine.any(FooInjectable));
+            it("should allow injecting @InjectableFacade via inject([Type, test])", inject([FooInjectableFacade, function(foo: FooInjectableFacade) {
+                expect(foo).toEqual(jasmine.any(FooInjectableFacade));
             }]));
 
-            it("should allow injecting non-@Injectable via inject([Type, test])", inject([Foo, function(foo: Foo) {
+            it("should allow injecting non-@InjectableFacade via inject([Type, test])", inject([Foo, function(foo: Foo) {
                 expect(foo).toEqual(jasmine.any(Foo));
             }]));
         });
@@ -1244,19 +1244,19 @@ describe("facade", function() {
                 $provide.factory("provided-thing", () => new Foo());
             }));
 
-            it("should allow injecting @Injectable via inject([Type, test])", inject([Foo, function(foo: Foo) {
+            it("should allow injecting @InjectableFacade via inject([Type, test])", inject([Foo, function(foo: Foo) {
                 expect(foo).toEqual(jasmine.any(Foo));
             }]));
 
-            it("should allow injecting non-@Injectable via inject([Type, test])", inject([Foo, function(foo: Foo) {
+            it("should allow injecting non-@InjectableFacade via inject([Type, test])", inject([Foo, function(foo: Foo) {
                 expect(foo).toEqual(jasmine.any(Foo));
             }]));
         });
     });
 
     describe("IModule", function() {
-        function createModule(provider: Provider): angular.IModule {
-            @NgModule({
+        function createModule(provider: ProviderFacade): angular.IModule {
+            @NgModuleFacade({
                 id: "test", providers: [provider]
             })
             class Mod {}
@@ -1266,7 +1266,7 @@ describe("facade", function() {
 
 
         it("should support injecting types into run", function() {
-            @Injectable()
+            @InjectableFacade()
             class Foo {}
 
             const module = createModule(Foo);
@@ -1292,7 +1292,7 @@ describe("facade", function() {
         });
 
         it("should support injecting types into directive factories", function() {
-            @Injectable()
+            @InjectableFacade()
             class Foo {}
 
             const module = createModule(Foo);
@@ -1332,7 +1332,7 @@ describe("facade", function() {
         });
 
         it("should support injecting types into component controllers", function() {
-            @Injectable()
+            @InjectableFacade()
             class Foo {}
 
             const module = createModule(Foo);
@@ -1352,7 +1352,7 @@ describe("facade", function() {
         // it("should support injecting any key type into component controllers", function() {
         //     const injectorKey = {};
 
-        //     @Injectable()
+        //     @InjectableFacade()
         //     class Foo {}
 
         //     const module = createModule({provide: injectorKey, useValue: Foo});
@@ -1369,7 +1369,7 @@ describe("facade", function() {
         // });
 
         it("should support injecting types into controllers", function() {
-            @Injectable()
+            @InjectableFacade()
             class Foo {}
 
             const module = createModule(Foo);
@@ -1397,7 +1397,7 @@ describe("facade", function() {
         });
 
         it("should support injecting types into factories", function() {
-            @Injectable()
+            @InjectableFacade()
             class Foo {}
 
             const module = createModule(Foo);
@@ -1423,7 +1423,7 @@ describe("facade", function() {
         });
 
         it("should support injecting types into services", function() {
-            @Injectable()
+            @InjectableFacade()
             class Foo {}
 
             const module = createModule(Foo);
@@ -1449,7 +1449,7 @@ describe("facade", function() {
         });
 
         it("should support injecting types into filters", function() {
-            @Injectable()
+            @InjectableFacade()
             class Foo {}
 
             const module = createModule(Foo);
@@ -1475,7 +1475,7 @@ describe("facade", function() {
         });
 
         it("should support injecting types into decorators", function() {
-            @Injectable()
+            @InjectableFacade()
             class Foo {}
 
             const module = createModule(Foo);
@@ -1508,32 +1508,32 @@ describe("facade", function() {
     });
 
     describe("lifecycle interfaces", function() {
-        it("should provide OnInit", function() {
-            class I implements OnInit {
+        it("should provide OnInitFacade", function() {
+            class I implements OnInitFacade {
                 $onInit(): void {
                     //noop
                 }
             }
         });
 
-        it("should provide OnChanges", function() {
-            class I implements OnChanges {
+        it("should provide OnChangesFacade", function() {
+            class I implements OnChangesFacade {
                 $onChanges(onChangesObj: angular.IOnChangesObject): void {
                     //noop
                 }
             }
         });
 
-        it("should provide OnDestroy", function() {
-            class I implements OnDestroy {
+        it("should provide OnDestroyFacade", function() {
+            class I implements OnDestroyFacade {
                 $onDestroy(): void {
                     //noop
                 }
             }
         });
 
-        it("should provide DoCheck", function() {
-            class I implements DoCheck {
+        it("should provide DoCheckFacade", function() {
+            class I implements DoCheckFacade {
                 $doCheck(): void {
                     //noop
                 }
@@ -1541,30 +1541,30 @@ describe("facade", function() {
         });
     });
 
-    describe("@Component", function() {
-        it("should delegate @Component() in @NgModule{declarations} to module.directive", function() {
+    describe("@ComponentFacade", function() {
+        it("should delegate @ComponentFacade() in @NgModuleFacade{declarations} to module.directive", function() {
             const spies = createMockModule();
 
-            @Component({
+            @ComponentFacade({
                 selector: "comp-selector"
             })
             class Comp {}
 
-            @NgModule({id: "compMod", declarations: [Comp]})
+            @NgModuleFacade({id: "compMod", declarations: [Comp]})
             class Mod {}
 
             expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({controller: Comp}));
         });
 
-        it("should provide module.component like defaults for @Component() to module.directive", function() {
+        it("should provide module.component like defaults for @ComponentFacade() to module.directive", function() {
             const spies = createMockModule();
 
-            @Component({
+            @ComponentFacade({
                 selector: "comp-selector"
             })
             class Comp {}
 
-            @NgModule({id: "compMod", declarations: [Comp]})
+            @NgModuleFacade({id: "compMod", declarations: [Comp]})
             class Mod {}
 
             expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({
@@ -1579,12 +1579,12 @@ describe("facade", function() {
         it("should convert dash-cased name to module.directive camelCased", function() {
             const spies = createMockModule();
 
-            @Component({
+            @ComponentFacade({
                 selector: "comp-selector"
             })
             class Comp {}
 
-            @NgModule({id: "compMod", declarations: [Comp]})
+            @NgModuleFacade({id: "compMod", declarations: [Comp]})
             class Mod {}
 
             expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({
@@ -1594,53 +1594,53 @@ describe("facade", function() {
             }));
         });
 
-        describe("@Input", function() {
-            it("should convert @Input() fields to module.directive <? bindToController", function() {
+        describe("@InputFacade", function() {
+            it("should convert @InputFacade() fields to module.directive <? bindToController", function() {
                 const spies = createMockModule();
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Input()
+                    @InputFacade()
                     public inputName;
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({bindToController: {inputName: "<?"}, controller: Comp}));
             });
 
-            it("should convert @Input('altName') fields to module.directive aliased <? bindToController", function() {
+            it("should convert @InputFacade('altName') fields to module.directive aliased <? bindToController", function() {
                 const spies = createMockModule();
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Input("altName")
+                    @InputFacade("altName")
                     public inputName;
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({bindToController: {inputName: "<?altName"}, controller: Comp}));
             });
 
-            it("should convert @Input('dash-cased') fields to module.directive aliased <? bindToController", function() {
+            it("should convert @InputFacade('dash-cased') fields to module.directive aliased <? bindToController", function() {
                 const spies = createMockModule();
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Input("dash-cased")
+                    @InputFacade("dash-cased")
                     public inputName;
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
@@ -1649,54 +1649,54 @@ describe("facade", function() {
                 }));
             });
 
-            it("should convert @InputString() fields to module.directive @? bindToController", function() {
+            it("should convert @InputStringFacade() fields to module.directive @? bindToController", function() {
                 const spies = createMockModule();
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @InputString()
+                    @InputStringFacade()
                     public inputName;
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({bindToController: {inputName: "@?"}, controller: Comp}));
             });
 
-            it("should convert @InputCallback() fields to module.directive &? bindToController", function() {
+            it("should convert @InputCallbackFacade() fields to module.directive &? bindToController", function() {
                 const spies = createMockModule();
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @InputCallback()
+                    @InputCallbackFacade()
                     public inputName;
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({bindToController: {inputName: "&?"}, controller: Comp}));
             });
         });
 
-        describe("@Output", function() {
-            it("should convert @Output() fields to module.directive &? bindToController", function() {
+        describe("@OutputFacade", function() {
+            it("should convert @OutputFacade() fields to module.directive &? bindToController", function() {
                 const spies = createMockModule();
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Output()
-                    public outputName: EventEmitter<any> = new EventEmitter();
+                    @OutputFacade()
+                    public outputName: EventEmitterFacade<any> = new EventEmitterFacade();
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
@@ -1705,18 +1705,18 @@ describe("facade", function() {
                 }));
             });
 
-            it("should convert @Output('dash-cased') fields to module.directive aliased &? bindToController", function() {
+            it("should convert @OutputFacade('dash-cased') fields to module.directive aliased &? bindToController", function() {
                 const spies = createMockModule();
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Output("dash-cased")
-                    public outputName: EventEmitter<any> = new EventEmitter();
+                    @OutputFacade("dash-cased")
+                    public outputName: EventEmitterFacade<any> = new EventEmitterFacade();
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
@@ -1725,18 +1725,18 @@ describe("facade", function() {
                 }));
             });
 
-            it("should convert @Output('altName') fields to module.directive aliased &? bindToController", function() {
+            it("should convert @OutputFacade('altName') fields to module.directive aliased &? bindToController", function() {
                 const spies = createMockModule();
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Output("altName")
-                    public outputName: EventEmitter<any> = new EventEmitter();
+                    @OutputFacade("altName")
+                    public outputName: EventEmitterFacade<any> = new EventEmitterFacade();
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
@@ -1745,20 +1745,20 @@ describe("facade", function() {
                 }));
             });
 
-            it("should convert multiple @Output() fields to multiple module.directive &? bindToController", function() {
+            it("should convert multiple @OutputFacade() fields to multiple module.directive &? bindToController", function() {
                 const spies = createMockModule();
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Output()
-                    public outputName: EventEmitter<any> = new EventEmitter();
-                    @Output("nameTwo")
-                    public outputName2: EventEmitter<any>;
+                    @OutputFacade()
+                    public outputName: EventEmitterFacade<any> = new EventEmitterFacade();
+                    @OutputFacade("nameTwo")
+                    public outputName2: EventEmitterFacade<any>;
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
@@ -1770,15 +1770,15 @@ describe("facade", function() {
                 }));
             });
 
-            it("should invoke binding expressions when @Output() EventEmitter.emit invoked", function() {
+            it("should invoke binding expressions when @OutputFacade() EventEmitterFacade.emit invoked", function() {
                 let instance: Comp | undefined;
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Output()
-                    public outputName: EventEmitter<any> = new EventEmitter();
+                    @OutputFacade()
+                    public outputName: EventEmitterFacade<any> = new EventEmitterFacade();
 
                     constructor() {
                         instance = this;
@@ -1789,7 +1789,7 @@ describe("facade", function() {
                     }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 const foo = jasmine.createSpy("callback");
@@ -1802,15 +1802,15 @@ describe("facade", function() {
                 expect(foo).toHaveBeenCalled();
             });
 
-            it("should invoke binding expressions when @Output('dash-cased') is used", function() {
+            it("should invoke binding expressions when @OutputFacade('dash-cased') is used", function() {
                 let instance: Comp | undefined;
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Output("dash-cased")
-                    public outputName: EventEmitter<any> = new EventEmitter();
+                    @OutputFacade("dash-cased")
+                    public outputName: EventEmitterFacade<any> = new EventEmitterFacade();
 
                     constructor() {
                         instance = this;
@@ -1821,7 +1821,7 @@ describe("facade", function() {
                     }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 const foo = jasmine.createSpy("callback");
@@ -1834,15 +1834,15 @@ describe("facade", function() {
                 expect(foo).toHaveBeenCalled();
             });
 
-            it("should invoke binding expressions when @Output('camelCased') is used", function() {
+            it("should invoke binding expressions when @OutputFacade('camelCased') is used", function() {
                 let instance: Comp | undefined;
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Output("camelCased")
-                    public outputName: EventEmitter<any> = new EventEmitter();
+                    @OutputFacade("camelCased")
+                    public outputName: EventEmitterFacade<any> = new EventEmitterFacade();
 
                     constructor() {
                         instance = this;
@@ -1853,7 +1853,7 @@ describe("facade", function() {
                     }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 const foo = jasmine.createSpy("callback");
@@ -1866,15 +1866,15 @@ describe("facade", function() {
                 expect(foo).toHaveBeenCalled();
             });
 
-            it("should invoke binding local $event variable when invoking @Output() EventEmitters", function() {
+            it("should invoke binding local $event variable when invoking @OutputFacade() EventEmitters", function() {
                 let instance: Comp | undefined;
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Output()
-                    public outputName: EventEmitter<number> = new EventEmitter();
+                    @OutputFacade()
+                    public outputName: EventEmitterFacade<number> = new EventEmitterFacade();
 
                     constructor() {
                         instance = this;
@@ -1885,7 +1885,7 @@ describe("facade", function() {
                     }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 const foo = jasmine.createSpy("callback");
@@ -1898,15 +1898,15 @@ describe("facade", function() {
                 expect(foo).toHaveBeenCalledWith(1);
             });
 
-            it("should throw when emiting @Output() within $onInit", function() {
+            it("should throw when emiting @OutputFacade() within $onInit", function() {
                 let caughtException;
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Output()
-                    public outputName: EventEmitter<number> = new EventEmitter();
+                    @OutputFacade()
+                    public outputName: EventEmitterFacade<number> = new EventEmitterFacade();
 
                     $onInit() {
                         try {
@@ -1918,49 +1918,49 @@ describe("facade", function() {
                     }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 bootstrapAndCompile("compMod", "<comp output-name='foo($event)'>");
 
-                expect(caughtException).toEqual(new Error("Uninitialized EventEmitter"));
+                expect(caughtException).toEqual(new Error("Uninitialized EventEmitterFacade"));
             });
 
-            it("should throw when emiting @Output() before $onInit", function() {
-                @Component({
+            it("should throw when emiting @OutputFacade() before $onInit", function() {
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Output()
-                    public outputName: EventEmitter<number> = new EventEmitter();
+                    @OutputFacade()
+                    public outputName: EventEmitterFacade<number> = new EventEmitterFacade();
 
                     constructor() {
                         this.outputName.emit(1);
                     }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
-                expect(function() { return new EventEmitter().emit(); }).toThrowError("Uninitialized EventEmitter");
+                expect(function() { return new EventEmitterFacade().emit(); }).toThrowError("Uninitialized EventEmitterFacade");
 
-                expect(function() { return new Comp(); }).toThrowError("Uninitialized EventEmitter");
+                expect(function() { return new Comp(); }).toThrowError("Uninitialized EventEmitterFacade");
 
                 expect(function() {
                     bootstrapAndCompile("compMod", "<comp>");
                 })
-                .toThrowError("Uninitialized EventEmitter");
+                .toThrowError("Uninitialized EventEmitterFacade");
             });
 
-            it("should support emiting @Output() emitters with no bound callback", function() {
+            it("should support emiting @OutputFacade() emitters with no bound callback", function() {
                 let instance: Comp | undefined;
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Output()
-                    public outputName: EventEmitter<number> = new EventEmitter();
+                    @OutputFacade()
+                    public outputName: EventEmitterFacade<number> = new EventEmitterFacade();
 
                     constructor() {
                         instance = this;
@@ -1971,7 +1971,7 @@ describe("facade", function() {
                     }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 const foo = jasmine.createSpy("callback");
@@ -1984,28 +1984,28 @@ describe("facade", function() {
                 instance!.fire(2);
             });
 
-            it("should throw if @Output() does not have EventEmitter as type", function() {
+            it("should throw if @OutputFacade() does not have EventEmitterFacade as type", function() {
                 expect(function() {
-                    @Component({
+                    @ComponentFacade({
                         selector: "comp"
                     })
                     class Comp {
-                        @Output()
+                        @OutputFacade()
                         public outputName;
                     }
                 })
-                .toThrowError("Comp.outputName type must be EventEmitter");
+                .toThrowError("Comp.outputName type must be EventEmitterFacade");
             });
 
-            it("should allow extensions of EventEmitter as @Output() type", function() {
-                class ExtendedEmitter extends EventEmitter<number> {}
+            it("should allow extensions of EventEmitterFacade as @OutputFacade() type", function() {
+                class ExtendedEmitter extends EventEmitterFacade<number> {}
 
                 expect(function() {
-                    @Component({
+                    @ComponentFacade({
                         selector: "comp"
                     })
                     class Comp {
-                        @Output()
+                        @OutputFacade()
                         public outputName: ExtendedEmitter;
                     }
                 })
@@ -2013,19 +2013,19 @@ describe("facade", function() {
             });
         });
 
-        describe("@Require", function() {
-            it("should convert @Require() fields to module.directive require with same name as field", function() {
+        describe("@RequireFacade", function() {
+            it("should convert @RequireFacade() fields to module.directive require with same name as field", function() {
                 const spies = createMockModule();
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Require()
+                    @RequireFacade()
                     public requirement;
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
@@ -2034,18 +2034,18 @@ describe("facade", function() {
                 }));
             });
 
-            it("should convert @Require('^') fields to module.directive require with same name as field", function() {
+            it("should convert @RequireFacade('^') fields to module.directive require with same name as field", function() {
                 const spies = createMockModule();
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Require("^")
+                    @RequireFacade("^")
                     public requirement;
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
@@ -2054,18 +2054,18 @@ describe("facade", function() {
                 }));
             });
 
-            it("should convert @Require('name') fields to module.directive require", function() {
+            it("should convert @RequireFacade('name') fields to module.directive require", function() {
                 const spies = createMockModule();
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Require("name")
+                    @RequireFacade("name")
                     public requirement;
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
@@ -2074,18 +2074,18 @@ describe("facade", function() {
                 }));
             });
 
-            it("should convert @Require('^^name') fields to module.directive require", function() {
+            it("should convert @RequireFacade('^^name') fields to module.directive require", function() {
                 const spies = createMockModule();
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Require("^^name")
+                    @RequireFacade("^^name")
                     public requirement;
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
@@ -2094,18 +2094,18 @@ describe("facade", function() {
                 }));
             });
 
-            it("should convert @Require('dash-cased') fields to camelCased module.directive require", function() {
+            it("should convert @RequireFacade('dash-cased') fields to camelCased module.directive require", function() {
                 const spies = createMockModule();
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Require("dash-cased")
+                    @RequireFacade("dash-cased")
                     public requirement;
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
@@ -2114,18 +2114,18 @@ describe("facade", function() {
                 }));
             });
 
-            it("should convert @Require('^dash-cased') fields to camelCased module.directive require", function() {
+            it("should convert @RequireFacade('^dash-cased') fields to camelCased module.directive require", function() {
                 const spies = createMockModule();
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Require("^dash-cased")
+                    @RequireFacade("^dash-cased")
                     public requirement;
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
@@ -2134,18 +2134,18 @@ describe("facade", function() {
                 }));
             });
 
-            it("should convert @Require()camelCased fields to camelCased mmodule.directive require", function() {
+            it("should convert @RequireFacade()camelCased fields to camelCased mmodule.directive require", function() {
                 const spies = createMockModule();
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Require()
+                    @RequireFacade()
                     public camelCased;
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 expectDirectiveDefinitionCall(spies, "comp", jasmine.objectContaining({
@@ -2154,20 +2154,20 @@ describe("facade", function() {
                 }));
             });
 
-            it("should setup @Require() on compilation", function() {
+            it("should setup @RequireFacade() on compilation", function() {
                 let instance: Comp | undefined;
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Require()
+                    @RequireFacade()
                     public ngModel;
 
                     constructor() { instance = this; }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 bootstrapAndCompile("compMod", "<comp ng-model='bar'>");
@@ -2176,20 +2176,20 @@ describe("facade", function() {
                 expect(instance!.ngModel).toBeDefined();
             });
 
-            it("should setup @Require('camelCased') on compilation", function() {
+            it("should setup @RequireFacade('camelCased') on compilation", function() {
                 let instance: Comp | undefined;
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Require("ngModel")
+                    @RequireFacade("ngModel")
                     public foo;
 
                     constructor() { instance = this; }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 bootstrapAndCompile("compMod", "<comp ng-model='bar'>");
@@ -2198,20 +2198,20 @@ describe("facade", function() {
                 expect(instance!.foo).toBeDefined();
             });
 
-            it("should setup @Require('dash-cased') on compilation", function() {
+            it("should setup @RequireFacade('dash-cased') on compilation", function() {
                 let instance: Comp | undefined;
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @Require("ng-model")
+                    @RequireFacade("ng-model")
                     public foo;
 
                     constructor() { instance = this; }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 bootstrapAndCompile("compMod", "<comp ng-model='bar'>");
@@ -2221,21 +2221,21 @@ describe("facade", function() {
             });
         });
 
-        describe("@HostListener", function() {
-            it("should bind @HostListener('asdf') to the DOM 'asdf' event", function() {
+        describe("@HostListenerFacade", function() {
+            it("should bind @HostListenerFacade('asdf') to the DOM 'asdf' event", function() {
                 const foo = jasmine.createSpy("foo event callback");
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @HostListener("asdf")
+                    @HostListenerFacade("asdf")
                     adsf() {
                         foo.apply(this, arguments);
                     }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 const {$dom} = bootstrapAndCompile("compMod", "<comp>");
@@ -2245,25 +2245,25 @@ describe("facade", function() {
                 expect(foo).toHaveBeenCalled();
             });
 
-            it("should bind multiple @HostListener('asdf')s to the DOM 'asdf' event", function() {
+            it("should bind multiple @HostListenerFacade('asdf')s to the DOM 'asdf' event", function() {
                 const foo = jasmine.createSpy("foo event callback");
                 const bar = jasmine.createSpy("bar event callback");
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @HostListener("asdf")
+                    @HostListenerFacade("asdf")
                     foo() {
                         foo.apply(this, arguments);
                     }
-                    @HostListener("asdf")
+                    @HostListenerFacade("asdf")
                     bar() {
                         bar.apply(this, arguments);
                     }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 const {$dom} = bootstrapAndCompile("compMod", "<comp>");
@@ -2279,19 +2279,19 @@ describe("facade", function() {
                 const foo = jasmine.createSpy("foo event callback");
 
                 let phase;
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    constructor(@Inject("$rootScope") public $rootScope) {}
+                    constructor(@InjectFacade("$rootScope") public $rootScope) {}
 
-                    @HostListener("asdf")
+                    @HostListenerFacade("asdf")
                     adsf() {
                         phase = this.$rootScope.$$phase;
                     }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 const {$dom} = bootstrapAndCompile("compMod", "<comp>");
@@ -2304,23 +2304,23 @@ describe("facade", function() {
             it("should support DOM events triggered while already in a digest", function() {
                 const foo = jasmine.createSpy("foo event callback");
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    constructor(@Inject("$element") private $element) {}
-                    @HostListener("asdf")
+                    constructor(@InjectFacade("$element") private $element) {}
+                    @HostListenerFacade("asdf")
                     adsf() {
                         foo.apply(this, arguments);
                     }
 
-                    @HostListener("first")
+                    @HostListenerFacade("first")
                     first() {
                         this.$element.triggerHandler("asdf");
                     }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 const {$dom} = bootstrapAndCompile("compMod", "<comp>");
@@ -2330,20 +2330,20 @@ describe("facade", function() {
                 expect(foo).toHaveBeenCalled();
             });
 
-            it("should pass arguments specified in @HostListener('asdf', [...args])", function() {
+            it("should pass arguments specified in @HostListenerFacade('asdf', [...args])", function() {
                 const foo = jasmine.createSpy("foo event callback");
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @HostListener("asdf", ["1", "2", "null"])
+                    @HostListenerFacade("asdf", ["1", "2", "null"])
                     adsf() {
                         foo.apply(this, arguments);
                     }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 const {$dom} = bootstrapAndCompile("compMod", "<comp>");
@@ -2353,20 +2353,20 @@ describe("facade", function() {
                 expect(foo).toHaveBeenCalledWith(1, 2, null);
             });
 
-            it("should support the $event argument in @HostListener('asdf', ['$event'])", function() {
+            it("should support the $event argument in @HostListenerFacade('asdf', ['$event'])", function() {
                 const foo = jasmine.createSpy("foo event callback");
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @HostListener("asdf", ["$event"])
+                    @HostListenerFacade("asdf", ["$event"])
                     adsf() {
                         foo.apply(this, arguments);
                     }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 const {$dom} = bootstrapAndCompile("compMod", "<comp>");
@@ -2376,20 +2376,20 @@ describe("facade", function() {
                 expect(foo).toHaveBeenCalledWith(jasmine.objectContaining({type: "asdf", target: $dom[0]}));
             });
 
-            it("should support expressions in @HostListener args)", function() {
+            it("should support expressions in @HostListenerFacade args)", function() {
                 const foo = jasmine.createSpy("foo event callback");
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @HostListener("asdf", ["$event.target", "1+2"])
+                    @HostListenerFacade("asdf", ["$event.target", "1+2"])
                     adsf() {
                         foo.apply(this, arguments);
                     }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 const {$dom} = bootstrapAndCompile("compMod", "<comp>");
@@ -2402,17 +2402,17 @@ describe("facade", function() {
             it("should not provide access to values on the $scope", function() {
                 const foo = jasmine.createSpy("foo event callback");
 
-                @Component({
+                @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @HostListener("asdf", ["$root", "$id", "$ctrl"])
+                    @HostListenerFacade("asdf", ["$root", "$id", "$ctrl"])
                     adsf() {
                         foo.apply(this, arguments);
                     }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 const {$dom} = bootstrapAndCompile("compMod", "<comp>");
@@ -2424,7 +2424,7 @@ describe("facade", function() {
         });
     });
 
-    describe("@Directive", function() {
+    describe("@DirectiveFacade", function() {
         function getMockedDirective(spies) {
             expect(spies.directive).toHaveBeenCalled();
 
@@ -2436,15 +2436,15 @@ describe("facade", function() {
             };
         }
 
-        it("should delegate @Directive() in @NgModule{declarations} to module.directive", function() {
+        it("should delegate @DirectiveFacade() in @NgModuleFacade{declarations} to module.directive", function() {
             const spies = createMockModule();
 
-            @Directive({
+            @DirectiveFacade({
                 selector: "dir-selector"
             })
             class Dir {}
 
-            @NgModule({id: "compMod", declarations: [Dir]})
+            @NgModuleFacade({id: "compMod", declarations: [Dir]})
             class Mod {}
 
             const {name, factory} = getMockedDirective(spies);
@@ -2456,12 +2456,12 @@ describe("facade", function() {
         it("should support attribute selectors", function() {
             const spies = createMockModule();
 
-            @Directive({
+            @DirectiveFacade({
                 selector: "[dir-selector]"
             })
             class Dir {}
 
-            @NgModule({id: "compMod", declarations: [Dir]})
+            @NgModuleFacade({id: "compMod", declarations: [Dir]})
             class Mod {}
 
             const {name, factory} = getMockedDirective(spies);
@@ -2473,12 +2473,12 @@ describe("facade", function() {
         it("should support class selectors", function() {
             const spies = createMockModule();
 
-            @Directive({
+            @DirectiveFacade({
                 selector: ".cls-selector"
             })
             class Dir {}
 
-            @NgModule({id: "compMod", declarations: [Dir]})
+            @NgModuleFacade({id: "compMod", declarations: [Dir]})
             class Mod {}
 
             const {name, factory} = getMockedDirective(spies);
@@ -2490,12 +2490,12 @@ describe("facade", function() {
         it("should convert dash-cased element name to module.directive camelCased", function() {
             const spies = createMockModule();
 
-            @Directive({
+            @DirectiveFacade({
                 selector: "comp-selector"
             })
             class Dir {}
 
-            @NgModule({id: "compMod", declarations: [Dir]})
+            @NgModuleFacade({id: "compMod", declarations: [Dir]})
             class Mod {}
 
             expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({
@@ -2509,12 +2509,12 @@ describe("facade", function() {
         it("should convert .dash-cased class name to module.directive camelCased", function() {
             const spies = createMockModule();
 
-            @Directive({
+            @DirectiveFacade({
                 selector: ".comp-selector"
             })
             class Dir {}
 
-            @NgModule({id: "compMod", declarations: [Dir]})
+            @NgModuleFacade({id: "compMod", declarations: [Dir]})
             class Mod {}
 
             expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({
@@ -2528,12 +2528,12 @@ describe("facade", function() {
         it("should convert [dash-cased] attribute name to module.directive camelCased", function() {
             const spies = createMockModule();
 
-            @Directive({
+            @DirectiveFacade({
                 selector: "[comp-selector]"
             })
             class Dir {}
 
-            @NgModule({id: "compMod", declarations: [Dir]})
+            @NgModuleFacade({id: "compMod", declarations: [Dir]})
             class Mod {}
 
             expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({
@@ -2545,67 +2545,67 @@ describe("facade", function() {
         });
 
         describe("unsupported", function() {
-            it("should throw when using @Input", function() {
-                @Directive({
+            it("should throw when using @InputFacade", function() {
+                @DirectiveFacade({
                     selector: "dir"
                 })
                 class Dir {
-                    @Input() public foo;
+                    @InputFacade() public foo;
                 }
 
                 expect(function() {
-                    @NgModule({id: "compMod", declarations: [Dir]})
+                    @NgModuleFacade({id: "compMod", declarations: [Dir]})
                     class Mod {}
                 })
-                .toThrowError("Directive input unsupported");
+                .toThrowError("DirectiveFacade input unsupported");
             });
 
-            it("should throw when using @Output", function() {
-                @Directive({
+            it("should throw when using @OutputFacade", function() {
+                @DirectiveFacade({
                     selector: "dir"
                 })
                 class Dir {
-                    @Output() public foo: EventEmitter<any>;
+                    @OutputFacade() public foo: EventEmitterFacade<any>;
                 }
 
                 expect(function() {
-                    @NgModule({id: "compMod", declarations: [Dir]})
+                    @NgModuleFacade({id: "compMod", declarations: [Dir]})
                     class Mod {}
                 })
-                .toThrowError("Directive input unsupported");
+                .toThrowError("DirectiveFacade input unsupported");
             });
 
-            it("should throw when using @Require", function() {
-                @Directive({
+            it("should throw when using @RequireFacade", function() {
+                @DirectiveFacade({
                     selector: "dir"
                 })
                 class Dir {
-                    @Require() public foo;
+                    @RequireFacade() public foo;
                 }
 
                 expect(function() {
-                    @NgModule({id: "compMod", declarations: [Dir]})
+                    @NgModuleFacade({id: "compMod", declarations: [Dir]})
                     class Mod {}
                 })
-                .toThrowError("Directive require unsupported");
+                .toThrowError("DirectiveFacade require unsupported");
             });
         });
 
-        describe("@HostListener", function() {
-            it("should bind @HostListener('asdf') to the DOM 'asdf' event", function() {
+        describe("@HostListenerFacade", function() {
+            it("should bind @HostListenerFacade('asdf') to the DOM 'asdf' event", function() {
                 const foo = jasmine.createSpy("foo event callback");
 
-                @Directive({
+                @DirectiveFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    @HostListener("asdf")
+                    @HostListenerFacade("asdf")
                     adsf() {
                         foo.apply(this, arguments);
                     }
                 }
 
-                @NgModule({id: "compMod", declarations: [Comp]})
+                @NgModuleFacade({id: "compMod", declarations: [Comp]})
                 class Mod {}
 
                 const {$dom} = bootstrapAndCompile("compMod", "<comp>");
@@ -2621,11 +2621,11 @@ describe("facade", function() {
         spyOn(<any>window, "angular");
         delete window["angular"].mock;
 
-        @Injectable()
+        @InjectableFacade()
         class Service {
         }
 
-        @NgModule({id: "test", providers: [Service]})
+        @NgModuleFacade({id: "test", providers: [Service]})
         class Mod {}
 
         const $injector = bootstrapAndInitialize("test", "$injector");
@@ -2635,11 +2635,11 @@ describe("facade", function() {
     });
 
     it("should use raw function names when running alongside angular-mock", function() {
-        @Injectable()
+        @InjectableFacade()
         class Service {
         }
 
-        @NgModule({id: "test", providers: [Service]})
+        @NgModuleFacade({id: "test", providers: [Service]})
         class Mod {}
 
         const $injector = bootstrapAndInitialize("test", "$injector");

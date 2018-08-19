@@ -17,55 +17,52 @@ import { identity, module, noop } from "angular";
 function valueFn<T>(v: T): () => T { return () => v; }
 
 //https://github.com/angular/angular/blob/2.4.8/modules/%40angular/core/src/type.ts
-const Type = Function;
-export interface Type<T> extends Function { new (...args: any[]): T; }
+const TypeFacade = Function;
+export interface TypeFacade<T> extends Function { new (...args: any[]): T; }
 
 
-export type Injectable<T extends Function> = T | Array<string | Type<any> | any | T>;
-
-//Create alternate name for augmenting into "angular" namespace
-export type FacadeInjectable<T extends Function> = Injectable<T>;
+export type InjectableFacade<T extends Function> = T | Array<string | TypeFacade<any> | any | T>;
 
 
 //Augment some AngularJS interfaces to allow passing types.
-//Basically copy and pasted, but use the local `Injectable` which allows injecting by type.
+//Basically copy and pasted, but use the local `InjectableFacade` which allows injecting by type.
 //https://www.typescriptlang.org/docs/handbook/declaration-merging.html#module-augmentation
 declare module "angular" {
     interface IModule {
-        controller(name: string | Type<any>, controllerConstructor: FacadeInjectable<angular.IControllerConstructor>): angular.IModule;
-        controller(object: {[name: string]: FacadeInjectable<angular.IControllerConstructor>}): angular.IModule;
+        controller(name: string | TypeFacade<any>, controllerConstructor: InjectableFacade<angular.IControllerConstructor>): angular.IModule;
+        controller(object: {[name: string]: InjectableFacade<angular.IControllerConstructor>}): angular.IModule;
 
-        directive(name: string | Type<any>, directiveFactory: FacadeInjectable<angular.IDirectiveFactory>): angular.IModule;
-        directive(object: {[directiveName: string]: FacadeInjectable<angular.IDirectiveFactory>}): angular.IModule;
+        directive(name: string | TypeFacade<any>, directiveFactory: InjectableFacade<angular.IDirectiveFactory>): angular.IModule;
+        directive(object: {[directiveName: string]: InjectableFacade<angular.IDirectiveFactory>}): angular.IModule;
 
-        factory(name: string | Type<any>, $getFn: FacadeInjectable<Function>): angular.IModule;
-        factory(object: {[name: string]: FacadeInjectable<Function>}): angular.IModule;
+        factory(name: string | TypeFacade<any>, $getFn: InjectableFacade<Function>): angular.IModule;
+        factory(object: {[name: string]: InjectableFacade<Function>}): angular.IModule;
 
-        filter(name: string, filterFactoryFunction: FacadeInjectable<Function>): angular.IModule;
-        filter(object: {[name: string]: FacadeInjectable<Function>}): angular.IModule;
+        filter(name: string, filterFactoryFunction: InjectableFacade<Function>): angular.IModule;
+        filter(object: {[name: string]: InjectableFacade<Function>}): angular.IModule;
 
-        run(initializationFunction: FacadeInjectable<Function>): angular.IModule;
+        run(initializationFunction: InjectableFacade<Function>): angular.IModule;
 
-        service(name: string | Type<any>, serviceConstructor: FacadeInjectable<Function>): angular.IModule;
-        service(object: {[name: string]: FacadeInjectable<Function>}): angular.IModule;
+        service(name: string | TypeFacade<any>, serviceConstructor: InjectableFacade<Function>): angular.IModule;
+        service(object: {[name: string]: InjectableFacade<Function>}): angular.IModule;
 
-        decorator(name: string | Type<any>, decorator: FacadeInjectable<Function>): angular.IModule;
+        decorator(name: string | TypeFacade<any>, decorator: InjectableFacade<Function>): angular.IModule;
     }
 
     namespace auto {
         interface IInjectorService {
-            get<T>(type: Type<T>, caller?: string): T;
+            get<T>(type: TypeFacade<T>, caller?: string): T;
             get(type: any, caller?: string): any;
             has(type: any): boolean;
         }
 
         interface IProvideService {
-            constant(type: Type<any>, value: any): void;
-            decorator(type: Type<any>, decorator: Function | any[]): void;
-            factory(type: Type<any>, serviceFactoryFunction: Function | any[]): angular.IServiceProvider;
-            provider(type: Type<any>, provider: Function | angular.IServiceProvider): angular.IServiceProvider;
-            service(type: Type<any>, constructor: Function | any[]): angular.IServiceProvider;
-            value(type: Type<any>, value: any): angular.IServiceProvider;
+            constant(type: TypeFacade<any>, value: any): void;
+            decorator(type: TypeFacade<any>, decorator: Function | any[]): void;
+            factory(type: TypeFacade<any>, serviceFactoryFunction: Function | any[]): angular.IServiceProvider;
+            provider(type: TypeFacade<any>, provider: Function | angular.IServiceProvider): angular.IServiceProvider;
+            service(type: TypeFacade<any>, constructor: Function | any[]): angular.IServiceProvider;
+            value(type: TypeFacade<any>, value: any): angular.IServiceProvider;
         }
     }
 }
@@ -91,20 +88,20 @@ function getOrSetMeta<T>(metadataKey: string, metadataValue: T, target: Object):
 }
 
 //Internal data keys
-const META_COMPONENT  = "@Component";
-const META_DIRECTIVE  = "@Directive";
-const META_INJECTABLE = "@Injectable";
-const META_INPUTS     = "@Input";
-const META_MODULE     = "@NgModule";
-const META_PIPE       = "@Pipe";
+const META_COMPONENT  = "@ComponentFacade";
+const META_DIRECTIVE  = "@DirectiveFacade";
+const META_InjectableFacade = "@InjectableFacade";
+const META_INPUTS     = "@InputFacade";
+const META_MODULE     = "@NgModuleFacade";
+const META_PIPE       = "@PipeFacade";
 const META_PRE_LINK   = "preLink";
-const META_REQUIRE    = "@Require";
+const META_REQUIRE    = "@RequireFacade";
 
 function getTypeName(type: string | Function): string {
     if (typeof type === "string") {
         return type;
     }
-    return <string>getMeta(META_INJECTABLE, type);
+    return <string>getMeta(META_InjectableFacade, type);
 }
 
 //A counter/uid for Object => string identifiers
@@ -114,24 +111,24 @@ function toTypeName(type: string | Function): string {
     let typeName = getTypeName(type);
     if (!typeName) {
         typeName = (<any>type).name + (window["angular"].mock ? "" : `_${tid++}`);
-        setMeta(META_INJECTABLE, typeName, type);
+        setMeta(META_InjectableFacade, typeName, type);
     }
     return typeName;
 }
 
-function getModuleName(mod: string | angular.IModule | Type<any>): string {
+function getModuleName(mod: string | angular.IModule | TypeFacade<any>): string {
     if (typeof mod === "string") {
         return mod;
     }
     else if (hasMeta(META_MODULE, mod)) {
-        return (<NgModule>getMeta(META_MODULE, mod)).id;
+        return (<NgModuleFacade>getMeta(META_MODULE, mod)).id;
     }
     else {
         return (<angular.IModule>mod).name;
     }
 }
 
-function getInjectArray(target: Injectable<any>): Array<Injectable<any>> {
+function getInjectArray(target: InjectableFacade<any>): Array<InjectableFacade<any>> {
     return target.$inject || (target.$inject = <string[]>(target.$inject || []));
 }
 
@@ -148,12 +145,12 @@ const COMPONENT_SELF_BINDING = "$$self";
  *
  * Supports:
  *    - AngularJS style `['InjectedName', InjectedClass, methodFoo]` or `methodFoo.$inject = ['InjectedName', InjectedClass]`
- *    - Angular style `@Injectable() class Foo { constructor(@Inject("InjectedName") localName){} }`
- *    - Angular style `@Injectable() class Foo { constructor(private localName: InjectedClass){} }`
+ *    - Angular style `@InjectableFacade() class Foo { constructor(@InjectFacade("InjectedName") localName){} }`
+ *    - Angular style `@InjectableFacade() class Foo { constructor(private localName: InjectedClass){} }`
  *    - any mix of the above
  */
-function injectMethod(method: Injectable<any>) {
-    //Array<string | Type> => Array<string>
+function injectMethod(method: InjectableFacade<any>) {
+    //Array<string | TypeFacade> => Array<string>
     if (Array.isArray(method)) {
         for (let i = 0; i < method.length - 1; i++) {
             if (typeof method[i] !== "string") {
@@ -163,9 +160,9 @@ function injectMethod(method: Injectable<any>) {
         return method;
     }
 
-    //@Injectable() (or any annotation?)
+    //@InjectableFacade() (or any annotation?)
     //Extract the object types via TypeScript metadata
-    const paramTypes: Array<Type<any>> = Reflect.getMetadata("design:paramtypes", method);
+    const paramTypes: Array<TypeFacade<any>> = Reflect.getMetadata("design:paramtypes", method);
     if (paramTypes) {
         const $paramsInject = getInjectArray(method);
 
@@ -192,43 +189,43 @@ function injectMethod(method: Injectable<any>) {
 }
 
 
-function isPipeTransform(o: Provider): o is PipeTransform & TypeProvider {
+function isPipeTransform(o: ProviderFacade): o is PipeTransformFacade & TypeProviderFacade {
     return hasMeta(META_PIPE, o);
 }
-function isExistingProvider(o: Provider): o is ExistingProvider {
+function isExistingProvider(o: ProviderFacade): o is ExistingProviderFacade {
     return "useExisting" in o;
 }
-function isFactoryProvider(o: Provider): o is FactoryProvider  {
+function isFactoryProvider(o: ProviderFacade): o is FactoryProviderFacade  {
     return "useFactory" in o;
 }
-function isClassProvider(o: Provider): o is ClassProvider {
+function isClassProvider(o: ProviderFacade): o is ClassProviderFacade {
     return "useClass" in o;
 }
-function isValueProvider(o: Provider): o is ValueProvider {
+function isValueProvider(o: ProviderFacade): o is ValueProviderFacade {
     return "useValue" in o;
 }
 
-function setupProvider(mod: angular.IModule, provider: Provider): void {
-    //Provider type detection similar to:
+function setupProvider(mod: angular.IModule, provider: ProviderFacade): void {
+    //ProviderFacade type detection similar to:
     // https://github.com/angular/angular/blob/2.4.4/modules/%40angular/core/src/di/reflective_provider.ts#L103
     // +
     // https://github.com/angular/angular/blob/2.4.4/modules/%40angular/core/src/di/reflective_provider.ts#L181
 
-    //PipeTransform
+    //PipeTransformFacade
     if (isPipeTransform(provider)) {
-        const pipeInfo: Pipe = getMeta(META_PIPE, provider);
+        const pipeInfo: PipeFacade = getMeta(META_PIPE, provider);
         mod.service(provider, provider);
-        mod.filter(pipeInfo.name, [provider, function(pipe: PipeTransform) {
+        mod.filter(pipeInfo.name, [provider, function(pipe: PipeTransformFacade) {
             const transform = pipe.transform.bind(pipe);
             transform.$stateful = (false === pipeInfo.pure);
             return transform;
         }]);
     }
-    //ExistingProvider
+    //ExistingProviderFacade
     else if (isExistingProvider(provider)) {
         mod.factory(provider.provide, [provider.useExisting, identity]);
     }
-    //FactoryProvider
+    //FactoryProviderFacade
     else if (isFactoryProvider(provider)) {
         const factory = provider.useFactory;
         if (provider.deps) {
@@ -239,22 +236,22 @@ function setupProvider(mod: angular.IModule, provider: Provider): void {
         }
         mod.factory(provider.provide, factory);
     }
-    //ClassProvider
+    //ClassProviderFacade
     else if (isClassProvider(provider)) {
         mod.service(provider.provide, provider.useClass);
     }
-    //ValueProvider
+    //ValueProviderFacade
     else if (isValueProvider(provider)) {
         mod.factory(provider.provide, valueFn(provider.useValue));
     }
-    //TypeProvider
-    else /*if (provider instanceof Type)*/ {
-        mod.service(getTypeName(<Type<any>>provider), <TypeProvider>provider);
+    //TypeProviderFacade
+    else /*if (provider instanceof TypeFacade)*/ {
+        mod.service(getTypeName(<TypeFacade<any>>provider), <TypeProviderFacade>provider);
     }
 }
 
-function createCompileFunction(ctrl: Type<any>, $injector: angular.auto.IInjectorService): angular.IDirectiveCompileFn | undefined {
-    const pre: Array<Injectable<any>> = getMeta(META_PRE_LINK, ctrl.prototype);
+function createCompileFunction(ctrl: TypeFacade<any>, $injector: angular.auto.IInjectorService): angular.IDirectiveCompileFn | undefined {
+    const pre: Array<InjectableFacade<any>> = getMeta(META_PRE_LINK, ctrl.prototype);
 
     if (pre) {
         return valueFn({
@@ -269,14 +266,14 @@ function createCompileFunction(ctrl: Type<any>, $injector: angular.auto.IInjecto
     return undefined;
 }
 
-function addPreLink(targetPrototype: Object, fn: Injectable<any>): void {
-    getOrSetMeta(META_PRE_LINK, <Array<Injectable<any>>>[], targetPrototype).push(fn);
+function addPreLink(targetPrototype: Object, fn: InjectableFacade<any>): void {
+    getOrSetMeta(META_PRE_LINK, <Array<InjectableFacade<any>>>[], targetPrototype).push(fn);
 }
 
-function setupComponent(mod: angular.IModule, ctrl: Type<any>, decl: Component): void {
+function setupComponent(mod: angular.IModule, ctrl: TypeFacade<any>, decl: ComponentFacade): void {
     const bindings: {[name: string]: string} = {};
 
-    //@Input(Type)s
+    //@InputFacade(TypeFacade)s
     (getMeta(META_INPUTS, ctrl) || []).forEach(function(input: InternalBindingMetadata) {
         bindings[input.name] = input.type + "?" + (input.publicName || "");
     });
@@ -284,7 +281,7 @@ function setupComponent(mod: angular.IModule, ctrl: Type<any>, decl: Component):
     //Reference to self
     const require = {[COMPONENT_SELF_BINDING]: dashToCamel(decl.selector)};
 
-    //@Require()s
+    //@RequireFacade()s
     const required = getMeta(META_REQUIRE, ctrl);
     for (const key in required) {
         require[key] = dashToCamel(required[key]);
@@ -311,7 +308,7 @@ function setupComponent(mod: angular.IModule, ctrl: Type<any>, decl: Component):
     }]);
 }
 
-function setupDirective(mod: angular.IModule, ctrl: Type<any>, decl: Directive): void {
+function setupDirective(mod: angular.IModule, ctrl: TypeFacade<any>, decl: DirectiveFacade): void {
     //Element vs attribute
     //AngularJS does not support complex selectors
     //Angular does not support comments
@@ -326,14 +323,14 @@ function setupDirective(mod: angular.IModule, ctrl: Type<any>, decl: Directive):
         restrict = "C";
     }
 
-    //TODO: inputs on Directive which has no isolated scope?
+    //TODO: inputs on DirectiveFacade which has no isolated scope?
     if (hasMeta(META_INPUTS, ctrl)) {
-        throw new Error("Directive input unsupported");
+        throw new Error("DirectiveFacade input unsupported");
     }
 
-    //TODO: require on Directive which has no isolated scope?
+    //TODO: require on DirectiveFacade which has no isolated scope?
     if (hasMeta(META_REQUIRE, ctrl)) {
-        throw new Error("Directive require unsupported");
+        throw new Error("DirectiveFacade require unsupported");
     }
 
     //reference to self
@@ -351,7 +348,7 @@ function setupDirective(mod: angular.IModule, ctrl: Type<any>, decl: Directive):
     }]);
 }
 
-function setupDeclaration(mod: angular.IModule, decl: Type<any>): void {
+function setupDeclaration(mod: angular.IModule, decl: TypeFacade<any>): void {
     if (hasMeta(META_COMPONENT, decl)) {
         setupComponent(mod, decl, getMeta(META_COMPONENT, decl));
     }
@@ -365,14 +362,14 @@ function setupDeclaration(mod: angular.IModule, decl: Type<any>): void {
 
 
 /**
- * @Injectable()
+ * @InjectableFacade()
  *
- * Marks a class as injectable. Required in this library, optional in Angular.
+ * Marks a class as InjectableFacade. Required in this library, optional in Angular.
  *
- * https://angular.io/docs/ts/latest/api/core/index/Injectable-decorator.html
+ * https://angular.io/docs/ts/latest/api/core/index/InjectableFacade-decorator.html
  */
 //https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/di/metadata.ts#L146
-export function Injectable(): ClassDecorator {
+export function InjectableFacade(): ClassDecorator {
     return function(constructor: Function): void {
         toTypeName(constructor);
     };
@@ -380,14 +377,14 @@ export function Injectable(): ClassDecorator {
 
 
 /**
- * @Inject
+ * @InjectFacade
  *
  * Manually inject by name.
  *
- * https://angular.io/docs/ts/latest/api/core/index/Inject-decorator.html
+ * https://angular.io/docs/ts/latest/api/core/index/InjectFacade-decorator.html
  */
 //https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/di/metadata.ts#L53
-export function Inject(thing: string): ParameterDecorator {
+export function InjectFacade(thing: string): ParameterDecorator {
     return function(target: Object, propertyKey: string, propertyIndex: number): void {
         getInjectArray(target)[propertyIndex] = thing;
     };
@@ -395,34 +392,34 @@ export function Inject(thing: string): ParameterDecorator {
 
 
 /**
- * Paramaters for @Pipe
+ * Paramaters for @PipeFacade
  *
- * https://angular.io/docs/ts/latest/api/core/index/Pipe-interface.html
+ * https://angular.io/docs/ts/latest/api/core/index/PipeFacade-interface.html
  */
 //https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/metadata/directives.ts#L743
-export interface Pipe {
+export interface PipeFacade {
     name: string;
     pure?: boolean;
 }
 
 /**
- * PipeTransform interface for @Pipe classes.
+ * PipeTransformFacade interface for @PipeFacade classes.
  *
  * https://angular.io/docs/ts/latest/api/core/index/PipeTransform-interface.html
  */
 //https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/change_detection/pipe_transform.ts#L38
-export interface PipeTransform {
+export interface PipeTransformFacade {
     transform: (value: any, ...args: any[]) => any;
 }
 
 /**
- * @Pipe
+ * @PipeFacade
  *
- * Marks a class as a Pipe.
+ * Marks a class as a PipeFacade.
  *
  * Works as a filter in AngularJS.
  */
-export function Pipe(info: Pipe): ClassDecorator {
+export function PipeFacade(info: PipeFacade): ClassDecorator {
     return function(constructor: Function): void {
         toTypeName(constructor);
         setMeta(META_PIPE, info, constructor);
@@ -453,60 +450,60 @@ function createInputDecorator(type: string) {
 }
 
 /**
- * @Input
+ * @InputFacade
  *
- * Marks a field as a Component/Directive input.
+ * Marks a field as a ComponentFacade/DirectiveFacade input.
  *
  * https://angular.io/docs/ts/latest/api/core/index/Input-interface.html
  */
-export const Input = createInputDecorator("<");
+export const InputFacade = createInputDecorator("<");
 
 /**
- * @InputString
+ * @InputStringFacade
  *
  * Non-standard helper for declaring input strings. Could be converted to plain @Input in Angular.
  *
  * Works as a @-binding in AngularJS.
  */
-export const InputString = createInputDecorator("@");
+export const InputStringFacade = createInputDecorator("@");
 
 /**
- * @InputCallback
+ * @InputCallbackFacade
  *
  * Non-standard helper for declaring callback style bindings.
- * **WARNING** Has no direct Angular replacement. Try to use @Output EventEmmitter instead.
+ * **WARNING** Has no direct Angular replacement. Try to use @OutputFacade EventEmmitter instead.
  *
  * Works as a &-binding in AngularJS.
  */
-export const InputCallback = createInputDecorator("&");
+export const InputCallbackFacade = createInputDecorator("&");
 
 
 /**
- * EventEmitter
+ * EventEmitterFacade
  *
  * A subset of the Angular interface.
  *
  * https://angular.io/docs/ts/latest/api/core/index/EventEmitter-class.html
  */
 //https://github.com/angular/angular/blob/2.4.7/modules/%40angular/facade/src/async.ts
-export class EventEmitter<T> {
+export class EventEmitterFacade<T> {
     public emit(value?: T): void {
-        throw new Error("Uninitialized EventEmitter");
+        throw new Error("Uninitialized EventEmitterFacade");
     }
 }
 
 const OUTPUT_BOUND_CALLBACK_PREFIX = "__event_";
 
 /**
- * @Output
+ * @OutputFacade
  *
  * https://angular.io/docs/ts/latest/api/core/index/Output-interface.html
  */
-export function Output(publicName?: string): PropertyDecorator {
+export function OutputFacade(publicName?: string): PropertyDecorator {
     return function(targetPrototype: Object, propertyKey: string): void {
-        const propertyType: Type<any> = Reflect.getMetadata("design:type", targetPrototype, propertyKey);
-        if (!(propertyType === EventEmitter || propertyType.prototype instanceof EventEmitter)) {
-            throw new Error(`${(<any>targetPrototype.constructor).name}.${propertyKey} type must be EventEmitter`);
+        const propertyType: TypeFacade<any> = Reflect.getMetadata("design:type", targetPrototype, propertyKey);
+        if (!(propertyType === EventEmitterFacade || propertyType.prototype instanceof EventEmitterFacade)) {
+            throw new Error(`${(<any>targetPrototype.constructor).name}.${propertyKey} type must be EventEmitterFacade`);
         }
 
         const internalCallback = OUTPUT_BOUND_CALLBACK_PREFIX + propertyKey;
@@ -517,8 +514,8 @@ export function Output(publicName?: string): PropertyDecorator {
             type: "&"
         });
 
-        addPreLink(targetPrototype, function(this: Type<any>) {
-            (<EventEmitter<any>>this[propertyKey]).emit = (value) => {
+        addPreLink(targetPrototype, function(this: TypeFacade<any>) {
+            (<EventEmitterFacade<any>>this[propertyKey]).emit = (value) => {
                 (this[internalCallback] || noop)({$event: value});
             };
         });
@@ -527,16 +524,16 @@ export function Output(publicName?: string): PropertyDecorator {
 
 
 /**
- * @HostListener
+ * @HostListenerFacade
  *
  * Bind a DOM event to the host element.
  *
  * https://angular.io/docs/ts/latest/api/core/index/HostListener-interface.html
  */
 //https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/metadata/directives.ts#L1005-L1017
-export function HostListener(eventType: string, args: string[] = []): MethodDecorator {
+export function HostListenerFacade(eventType: string, args: string[] = []): MethodDecorator {
     return function(targetPrototype: Object, propertyKey: string): void {
-        function HostListenerSetup(this: Type<any>, $element: JQuery, $parse: angular.IParseService, $rootScope: angular.IScope): void {
+        function HostListenerFacadeSetup(this: TypeFacade<any>, $element: JQuery, $parse: angular.IParseService, $rootScope: angular.IScope): void {
             //Parse the listener arguments on component initialization
             const argExps = args.map((s) => $parse(s));
 
@@ -553,19 +550,19 @@ export function HostListener(eventType: string, args: string[] = []): MethodDeco
                 }
             });
         }
-        HostListenerSetup.$inject = ["$element", "$parse", "$rootScope"];
+        HostListenerFacadeSetup.$inject = ["$element", "$parse", "$rootScope"];
 
-        addPreLink(targetPrototype, HostListenerSetup);
+        addPreLink(targetPrototype, HostListenerFacadeSetup);
     };
 }
 
 
 /**
- * @Require
+ * @RequireFacade
  *
  * Non-standard helper for AngularJS `require`.
  */
-export function Require(name?: string): PropertyDecorator {
+export function RequireFacade(name?: string): PropertyDecorator {
     const needsName = !name || /^[\^\?]+$/.test(name);
 
     return function(targetPrototype: Object, propertyKey: string): void {
@@ -575,31 +572,31 @@ export function Require(name?: string): PropertyDecorator {
 
 
 /**
- * A subset of the @Directive interface
+ * A subset of the @DirectiveFacade interface
  */
 //https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/metadata/directives.ts#L79
-export interface Directive {
+export interface DirectiveFacade {
     selector: string;
 
     //NOT SUPPORTED...
-    // providers: Provider[];
+    // providers: ProviderFacade[];
     // exportAs: string;
     // queries: {[key: string]: any};
     // host: {[key: string]: string};
 
     //MAYBE LATER:
     // inputs?: string[];
-    // outputs: string[];    requires EventEmitter?
+    // outputs: string[];    requires EventEmitterFacade?
 }
 
 /**
- * @Directive
+ * @DirectiveFacade
  *
  * Marks a class as a directive. A subset of the standard Angular features.
  *
  * https://angular.io/docs/ts/latest/api/core/index/Directive-decorator.html
  */
-export function Directive(info: Directive): ClassDecorator {
+export function DirectiveFacade(info: DirectiveFacade): ClassDecorator {
     return function(constructor: Function): void {
         setMeta(META_DIRECTIVE, info, constructor);
     };
@@ -607,10 +604,10 @@ export function Directive(info: Directive): ClassDecorator {
 
 
 /**
- * A subset of the @Component interface
+ * A subset of the @ComponentFacade interface
  */
 //https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/metadata/directives.ts#L487
-export interface Component extends Directive {
+export interface ComponentFacade extends DirectiveFacade {
     template?: string | any;    //NOTE: added "| any" to support CJS `require(...)`
 
     //AngularJS specific
@@ -631,14 +628,14 @@ export interface Component extends Directive {
     // styles: string[];
 
     // Dependencies on other component/directives
-    // viewProviders: Provider[];
+    // viewProviders: ProviderFacade[];
 
-    //Component dependencies
-    // entryComponents: Array<Type<any>|any[]>;
+    //ComponentFacade dependencies
+    // entryComponents: Array<TypeFacade<any>|any[]>;
 }
 
 /**
- * @Component
+ * @ComponentFacade
  *
  * Mark a class as a component. A subset of the standard Angular features.
  *
@@ -646,9 +643,9 @@ export interface Component extends Directive {
  *     transclude: for AngularJS transclusion
  *     controllerAs: for AngularJS naming of controllers
  *
- * https://angular.io/docs/ts/latest/api/core/index/Component-decorator.html
+ * https://angular.io/docs/ts/latest/api/core/index/ComponentFacade-decorator.html
  */
-export function Component(info: Component): ClassDecorator {
+export function ComponentFacade(info: ComponentFacade): ClassDecorator {
     return function(constructor: Function): void {
         setMeta(META_COMPONENT, info, constructor);
     };
@@ -656,53 +653,53 @@ export function Component(info: Component): ClassDecorator {
 
 
 //https://github.com/angular/angular/blob/2.4.8/modules/%40angular/core/src/di/provider.ts
-export interface TypeProvider extends Type<any> {}
-export interface ValueProvider {
+export interface TypeProviderFacade extends TypeFacade<any> {}
+export interface ValueProviderFacade {
   provide: any;
   useValue: any;
   // multi?: boolean;
 }
-export interface ClassProvider {
+export interface ClassProviderFacade {
   provide: any;
-  useClass: Type<any>;
+  useClass: TypeFacade<any>;
   // multi?: boolean;
 }
-export interface ExistingProvider {
+export interface ExistingProviderFacade {
   provide: any;
   useExisting: any;
   // multi?: boolean;
 }
-export interface FactoryProvider {
+export interface FactoryProviderFacade {
   provide: any;
   useFactory: Function;
   deps?: any[];
   // multi?: boolean;
 }
-export type Provider = TypeProvider | ValueProvider | ClassProvider | ExistingProvider | FactoryProvider/* | any[]*/;
+export type ProviderFacade = TypeProviderFacade | ValueProviderFacade | ClassProviderFacade | ExistingProviderFacade | FactoryProviderFacade/* | any[]*/;
 
 
 /**
- * A subset of the @NgModule interface
+ * A subset of the @NgModuleFacade interface
  */
 //https://github.com/angular/angular/blob/2.4.5/modules/%40angular/core/src/metadata/ng_module.ts#L70
-export interface NgModule {
+export interface NgModuleFacade {
     id: string;
 
-    providers?: Provider[];
-    declarations?: Array<Type<any>/*|any[]*/>;
-    imports?: Array<angular.IModule|Type<any>|string>;
+    providers?: ProviderFacade[];
+    declarations?: Array<TypeFacade<any>/*|any[]*/>;
+    imports?: Array<angular.IModule|TypeFacade<any>|string>;
 
     //NOT SUPPORTED...
-    // entryComponents: Array<Type<any>|any[]>;
-    // bootstrap: Array<Type<any>|any[]>;
+    // entryComponents: Array<TypeFacade<any>|any[]>;
+    // bootstrap: Array<TypeFacade<any>|any[]>;
     // schemas: Array<SchemaMetadata|any[]>;
 
     //Everything is exported in AngularJS
-    // exports: Array<Type<any>|any[]>;
+    // exports: Array<TypeFacade<any>|any[]>;
 }
 
 /**
- * @NgModule
+ * @NgModuleFacade
  *
  * Mark a class as a module. A subset of the standard Angular features.
  *
@@ -711,7 +708,7 @@ export interface NgModule {
  *
  * https://angular.io/docs/ts/latest/api/core/index/NgModule-interface.html
  */
-export function NgModule(info: NgModule): ClassDecorator {
+export function NgModuleFacade(info: NgModuleFacade): ClassDecorator {
     return function(constructor: Function): void {
         const mod = module(info.id, (info.imports || []).map(getModuleName));
 
@@ -736,16 +733,16 @@ export function NgModule(info: NgModule): ClassDecorator {
  *
  * https://angular.io/docs/ts/latest/api/core/index/OnInit-class.html
  */
-export interface OnInit {
+export interface OnInitFacade {
     $onInit(): void;
 }
 
 /**
  * The `DoCheck` interface, with the AngularJS method $doCheck() method.
  *
- * https://angular.io/docs/ts/latest/api/core/index/DoCheck-class.html
+ * https://angular.io/docs/ts/latest/api/core/index/DoCheckFacade-class.html
  */
-export interface DoCheck {
+export interface DoCheckFacade {
     $doCheck(): void;
 }
 
@@ -754,7 +751,7 @@ export interface DoCheck {
  *
  * https://angular.io/docs/ts/latest/api/core/index/OnChanges-class.html
  */
-export interface OnChanges {
+export interface OnChangesFacade {
     $onChanges(onChangesObj: angular.IOnChangesObject): void;
 }
 
@@ -763,7 +760,7 @@ export interface OnChanges {
  *
  * https://angular.io/docs/ts/latest/api/core/index/OnDestroy-class.html
  */
-export interface OnDestroy {
+export interface OnDestroyFacade {
     $onDestroy(): void;
 }
 
@@ -776,7 +773,7 @@ module("ng").decorator("$injector", ["$delegate", function(injector: angular.aut
     const {get, has, instantiate, invoke} = injector;
 
     // get<T>(name: string, caller?: string): T;
-    // get<T>(type: Type<T>, caller?: string): T;
+    // get<T>(type: TypeFacade<T>, caller?: string): T;
     // get(type: any, caller?: string): any;
     injector.get = function diGetWrapper(this: angular.auto.IInjectorService, what: any, caller?: string): any {
         return get.call(this, getTypeName(what), caller);
@@ -784,18 +781,18 @@ module("ng").decorator("$injector", ["$delegate", function(injector: angular.aut
 
     // has(name: string): boolean;
     // has(type: any): boolean;
-    injector.has = function diHasWrapper(this: angular.auto.IInjectorService, what: string | Type<any>): boolean {
+    injector.has = function diHasWrapper(this: angular.auto.IInjectorService, what: string | TypeFacade<any>): boolean {
         return has.call(this, getTypeName(what));
     };
 
     // instantiate<T>(typeConstructor: Function, locals?: any): T;
-    injector.instantiate = function diInstantiateWrapper<T>(this: angular.auto.IInjectorService, typeConstructor: Type<T>, locals: any): T {
+    injector.instantiate = function diInstantiateWrapper<T>(this: angular.auto.IInjectorService, typeConstructor: TypeFacade<T>, locals: any): T {
         return instantiate.call(this, injectMethod(typeConstructor), locals);
     };
 
     // invoke(inlineAnnotatedFunction: any[]): any;
     // invoke(func: Function, context?: any, locals?: any): any;
-    injector.invoke = function diInvokeWrapper(this: angular.auto.IInjectorService, thing: Type<any>, ...args: any[]) {
+    injector.invoke = function diInvokeWrapper(this: angular.auto.IInjectorService, thing: TypeFacade<any>, ...args: any[]) {
         return invoke.call(this, injectMethod(thing), ...args);
     };
 
@@ -808,16 +805,16 @@ module("ng").config(["$provide", function(provide: angular.auto.IProvideService)
     ["constant", "value", "factory", "provider", "service"].forEach(function(method) {
         const delegate = provide[method];
 
-        function diProvideWrapper(this: angular.auto.IProvideService, key: string | Type<any>, value: Function | any | any[]): angular.IServiceProvider;
-        function diProvideWrapper(this: angular.auto.IProvideService, key: string | Type<any>, value: angular.IServiceProvider): angular.IServiceProvider;
+        function diProvideWrapper(this: angular.auto.IProvideService, key: string | TypeFacade<any>, value: Function | any | any[]): angular.IServiceProvider;
+        function diProvideWrapper(this: angular.auto.IProvideService, key: string | TypeFacade<any>, value: angular.IServiceProvider): angular.IServiceProvider;
         function diProvideWrapper(this: angular.auto.IProvideService, multi: {key: string, value: any}): void;
 
-        function diProvideWrapper(this: angular.auto.IProvideService, key: string | Type<any> | {key: string, value: any}, value?: Function | angular.IServiceProvider | any[]): angular.IServiceProvider | void {
+        function diProvideWrapper(this: angular.auto.IProvideService, key: string | TypeFacade<any> | {key: string, value: any}, value?: Function | angular.IServiceProvider | any[]): angular.IServiceProvider | void {
             if (arguments.length === 1) {
                 return delegate(key);
             }
             else {
-                return delegate(toTypeName(<string | Type<any>>key), <Function | any | any[]>value);
+                return delegate(toTypeName(<string | TypeFacade<any>>key), <Function | any | any[]>value);
             }
         }
 
@@ -826,9 +823,9 @@ module("ng").config(["$provide", function(provide: angular.auto.IProvideService)
 
     const decorator = provide.decorator;
 
-    // decorator(type: Type<any>, decorator: Function): void;
-    // decorator(type: Type<any>, inlineAnnotatedFunction: any[]): void;
-    provide.decorator = function diDecorator(this: angular.auto.IProvideService, type: Type<any> | string, dec: Function | any[]): void {
+    // decorator(type: TypeFacade<any>, decorator: Function): void;
+    // decorator(type: TypeFacade<any>, inlineAnnotatedFunction: any[]): void;
+    provide.decorator = function diDecorator(this: angular.auto.IProvideService, type: TypeFacade<any> | string, dec: Function | any[]): void {
         decorator.call(this, toTypeName(type), dec);
     };
 }]);
