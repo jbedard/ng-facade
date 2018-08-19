@@ -1,3 +1,13 @@
+<a name="0.4.4"></a>
+## [0.4.4](https://github.com/jbedard/ng-facade/compare/v0.4.3...v0.4.4) (2018-08-19)
+
+
+### Bug Fixes
+
+* allow factory/service/constant/value to pass objects ([1d93647](https://github.com/jbedard/ng-facade/commit/1d93647)), closes [#23](https://github.com/jbedard/ng-facade/issues/23)
+
+
+
 <a name="0.4.3"></a>
 ## [0.4.3](https://github.com/jbedard/ng-facade/compare/v0.4.1...v0.4.3) (2017-08-18)
 
