@@ -1,10 +1,10 @@
 /**
  * @license ng-facade
- * (c) 2017 Jason Bedard
+ * (c) 2018 Jason Bedard
  * License: MIT
  */
 
-import { extend, identity, module, noop } from "angular";
+import { identity, module, noop } from "angular";
 
 /* TODO...
     - component lifecycle interfaces: https://angular.io/docs/ts/latest/guide/lifecycle-hooks.html ?
