@@ -1,3 +1,14 @@
+<a name="0.5.0"></a>
+# [0.5.0](https://github.com/jbedard/ng-facade/compare/v0.4.4...v0.5.0) (2018-08-19)
+
+
+### Features
+
+* add a `Facade` suffix to all exported names ([86bd851](https://github.com/jbedard/ng-facade/commit/86bd851))
+* support angular 1.7 ([e67d7b8](https://github.com/jbedard/ng-facade/commit/e67d7b8))
+
+
+
 <a name="0.4.4"></a>
 ## [0.4.4](https://github.com/jbedard/ng-facade/compare/v0.4.3...v0.4.4) (2018-08-19)
 
