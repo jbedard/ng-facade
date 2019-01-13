@@ -37,9 +37,9 @@
     "karma-phantomjs-launcher": "^1.0",
     "karma-typescript": "3.0",
     "reflect-metadata": "^0.1",
-    "tslib": "^1.5.0",
+    "tslib": "^1.9.3",
     "tslint": "^5.8.0",
-    "typescript": "^2.9.0"
+    "typescript": "^3.2.2"
   },
   "peerDependencies": {
     "angular": "^1.7.0"

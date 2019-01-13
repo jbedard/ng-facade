@@ -27,6 +27,8 @@ module.exports = function(config) {
         },
 
         karmaTypescriptConfig: {
+            tsconfig: "tsconfig.json",
+
             coverageOptions: {
                 //Enabled coverage when running in non-server mode
                 instrumentation: config.singleRun
