@@ -23,7 +23,7 @@
   "devDependencies": {
     "@types/angular": "^1.6.50",
     "@types/angular-mocks": "^1.7.0",
-    "@types/jasmine": "^2.5.47",
+    "@types/jasmine": "^3.3.5",
     "angular": "^1.7.0",
     "angular-mocks": "^1.7.0",
     "conventional-changelog-cli": "^1.2",
@@ -33,7 +33,7 @@
     "karma": "^3.0.0",
     "karma-chrome-launcher": "^2.0",
     "karma-coverage": "^1.1",
-    "karma-jasmine": "^1.1",
+    "karma-jasmine": "^2.0.0",
     "karma-phantomjs-launcher": "^1.0",
     "karma-typescript": "3.0",
     "reflect-metadata": "^0.1",
