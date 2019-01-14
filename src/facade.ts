@@ -29,6 +29,8 @@ export type InjectableFacade<T extends Function> = T | Array<string | TypeFacade
 //https://www.typescriptlang.org/docs/handbook/declaration-merging.html#module-augmentation
 declare module "angular" {
     interface IModule {
+        constant(type: TypeFacade<any>, value: any): void;
+
         controller(name: string | TypeFacade<any>, controllerConstructor: InjectableFacade<angular.IControllerConstructor>): angular.IModule;
         controller(object: {[name: string]: InjectableFacade<angular.IControllerConstructor>}): angular.IModule;
 
@@ -47,13 +49,14 @@ declare module "angular" {
         service(object: {[name: string]: InjectableFacade<Function>}): angular.IModule;
 
         decorator(name: string | TypeFacade<any>, decorator: InjectableFacade<Function>): angular.IModule;
+
+        value(type: TypeFacade<any>, value: any): angular.IModule;
     }
 
     namespace auto {
         interface IInjectorService {
             get<T>(type: TypeFacade<T>, caller?: string): T;
-            get(type: any, caller?: string): any;
-            has(type: any): boolean;
+            has(type: TypeFacade<any>): boolean;
         }
 
         interface IProvideService {
