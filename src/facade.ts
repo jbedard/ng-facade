@@ -31,10 +31,10 @@ declare module "angular" {
     interface IModule {
         constant(type: TypeFacade<any>, value: any): void;
 
-        controller(name: string | TypeFacade<any>, controllerConstructor: InjectableFacade<angular.IControllerConstructor>): angular.IModule;
+        controller(name: string, controllerConstructor: InjectableFacade<angular.IControllerConstructor>): angular.IModule;
         controller(object: {[name: string]: InjectableFacade<angular.IControllerConstructor>}): angular.IModule;
 
-        directive(name: string | TypeFacade<any>, directiveFactory: InjectableFacade<angular.IDirectiveFactory>): angular.IModule;
+        directive(name: string, directiveFactory: InjectableFacade<angular.IDirectiveFactory>): angular.IModule;
         directive(object: {[directiveName: string]: InjectableFacade<angular.IDirectiveFactory>}): angular.IModule;
 
         factory(name: string | TypeFacade<any>, $getFn: InjectableFacade<Function>): angular.IModule;
