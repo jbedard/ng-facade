@@ -53,7 +53,7 @@ describe("facade", function() {
         return {$scope, $dom, $injector, $rootScope};
     }
 
-    function expectDirectiveDefinitionCall(spies, nameExpectation, definitionExpectation) {
+    function expectDirectiveDefinitionCall(spies: angular.IModule & {directive: jasmine.Spy}, nameExpectation: string, definitionExpectation: jasmine.ObjectContaining<any>) {
         expect(spies.directive).toHaveBeenCalled();
 
         const [name, factory] = spies.directive.calls.mostRecent().args;
@@ -64,9 +64,18 @@ describe("facade", function() {
         expect(factory[1]()).toEqual(definitionExpectation);
     }
 
-    function createMockModule(): {module: angular.IModule & jasmine.Spy} & angular.IModule {
+    interface SpyingModule extends angular.IModule {
+        name: string;
+        run: jasmine.Spy;
+        service: jasmine.Spy;
+        factory: jasmine.Spy;
+        directive: jasmine.Spy;
+        filter: jasmine.Spy;
+        module: jasmine.Spy;
+    }
+    function createMockModule(): SpyingModule {
         const mockModule = {
-            name: undefined,
+            name: "",
             run: jasmine.createSpy("run"),
             service: jasmine.createSpy("service"),
             factory: jasmine.createSpy("factory"),
@@ -74,7 +83,7 @@ describe("facade", function() {
             filter: jasmine.createSpy("filter")
         };
 
-        const module = spyOn(angular, "module").and.callFake(function(name) {
+        const module = spyOn(angular, "module").and.callFake(function(name: string) {
             mockModule.name = name;
             return mockModule;
         });
@@ -188,7 +197,7 @@ describe("facade", function() {
             it("should invoke factory", function() {
                 class Foo {}
 
-                let theNewFoo;
+                let theNewFoo: Foo | undefined;
 
                 @NgModuleFacade({
                     id: "test", providers: [{provide: Foo, useFactory() { return theNewFoo = new Foo(); }}]
@@ -197,7 +206,7 @@ describe("facade", function() {
 
                 const instance = bootstrapAndInitialize("test", Foo);
 
-                expect(instance).toBe(theNewFoo);
+                expect(instance).toBe(theNewFoo!);
                 expect(instance).toEqual(jasmine.any(Foo));
             });
 
@@ -218,7 +227,7 @@ describe("facade", function() {
                 @InjectableFacade()
                 class Foo {}
 
-                let theNewFoo;
+                let theNewFoo: Foo | undefined;
 
                 @NgModuleFacade({
                     id: "test", providers: [{provide: Foo, useFactory() { return theNewFoo = new Foo(); }}]
@@ -227,7 +236,7 @@ describe("facade", function() {
 
                 const instance = bootstrapAndInitialize("test", Foo);
 
-                expect(instance).toBe(theNewFoo);
+                expect(instance).toBe(theNewFoo!);
                 expect(instance).toEqual(jasmine.any(Foo));
             });
 
@@ -236,14 +245,14 @@ describe("facade", function() {
                 class Foo {}
 
                 class Bar {
-                    constructor(public a, public b) {}
+                    constructor(public a: angular.IRootScopeService, public b: Foo) {}
                 }
 
                 @NgModuleFacade({
                     id: "test",
                     providers: [Foo, {
                         provide: Bar,
-                        useFactory(a, b) { return new Bar(a, b); },
+                        useFactory(a: angular.IRootScopeService, b: Foo) { return new Bar(a, b); },
                         deps: ["$rootScope", Foo]
                     }]
                 })
@@ -261,14 +270,14 @@ describe("facade", function() {
                 class Foo {}
 
                 class Bar {
-                    constructor(public a, public b) {}
+                    constructor(public a: angular.IRootScopeService, public b: Foo) {}
                 }
 
                 @NgModuleFacade({
                     id: "test",
                     providers: [{
                         provide: Bar,
-                        useFactory(a, b) { return new Bar(a, b); },
+                        useFactory(a: angular.IRootScopeService, b: Foo) { return new Bar(a, b); },
                         deps: ["$rootScope", Foo]
                     }, Foo]
                 })
@@ -286,10 +295,10 @@ describe("facade", function() {
                 class Foo {}
 
                 class Bar {
-                    constructor(public a, public b) {}
+                    constructor(public a: angular.IRootScopeService, public b: Foo) {}
                 }
 
-                function factory(a, b) { return new Bar(a, b); }
+                function factory(a: any, b: any) { return new Bar(a, b); }
                 (<any>factory).$inject = ["$rootScope", Foo];
 
                 @NgModuleFacade({
@@ -313,10 +322,10 @@ describe("facade", function() {
                 class Foo {}
 
                 class Bar {
-                    constructor(public a, public b) {}
+                    constructor(public a: angular.IRootScopeService, public b: Foo) {}
                 }
 
-                function factory(a, b) { return new Bar(a, b); }
+                function factory(a: any, b: any) { return new Bar(a, b); }
                 (<any>factory).$inject = ["$rootScope", Foo];
 
                 expect(function() {
@@ -584,7 +593,7 @@ describe("facade", function() {
 
             @PipeFacade({name: "myPipe"})
             class P implements PipeTransformFacade {
-                transform(x) { return x; }
+                transform(x: any) { return x; }
             }
 
             @NgModuleFacade({id: "pipeMod", providers: [P]})
@@ -601,9 +610,9 @@ describe("facade", function() {
             @PipeFacade({name: "myPipe"})
             class P implements PipeTransformFacade {
                 constructor() {
-                    constructorSpy.apply(this, arguments);
+                    constructorSpy();
                 }
-                transform(x) { return x; }
+                transform(x: any) { return x; }
             }
 
             @NgModuleFacade({id: "test", providers: [P]})
@@ -619,10 +628,10 @@ describe("facade", function() {
 
             @PipeFacade({name: "myPipe"})
             class P implements PipeTransformFacade {
-                constructor(@InjectFacade("$q") foobar, @InjectFacade("$q") private other) {
-                    constructorSpy.apply(this, arguments);
+                constructor(@InjectFacade("$q") foobar: angular.IQService, @InjectFacade("$q") private other: angular.IQService) {
+                    constructorSpy.call(this, foobar, other);
                 }
-                transform(x) { return x; }
+                transform(x: any) { return x; }
             }
 
             @NgModuleFacade({id: "test", providers: [P]})
@@ -640,7 +649,7 @@ describe("facade", function() {
         it("should be InjectableFacade", function() {
             @PipeFacade({name: "myPipe"})
             class P implements PipeTransformFacade {
-                transform(x) { return x; }
+                transform(x: any) { return x; }
             }
 
             @NgModuleFacade({id: "test", providers: [P]})
@@ -656,7 +665,7 @@ describe("facade", function() {
 
             @PipeFacade({name: "resultPipe"})
             class P implements PipeTransformFacade {
-                transform(...args) {
+                transform(...args: any[]) {
                     return args.reduce((t, x) => t + x, 0);
                 }
             }
@@ -677,8 +686,8 @@ describe("facade", function() {
 
             @PipeFacade({name: "argsTest"})
             class P implements PipeTransformFacade {
-                transform() {
-                    transformSpy.apply(this, arguments);
+                transform(...args: []) {
+                    transformSpy.apply(this, args);
                 }
             }
 
@@ -696,7 +705,7 @@ describe("facade", function() {
         it("should default @PipeFacade() to non-$stateful", function() {
             @PipeFacade({name: "noPure"})
             class P implements PipeTransformFacade {
-                transform(x) { return x; }
+                transform(x: any) { return x; }
             }
 
             @NgModuleFacade({id: "test", providers: [P]})
@@ -709,7 +718,7 @@ describe("facade", function() {
         it("should convert @PipeFacade({pure: true}) to non-$stateful", function() {
             @PipeFacade({name: "pureTrue", pure: true})
             class P implements PipeTransformFacade {
-                transform(x) { return x; }
+                transform(x: any) { return x; }
             }
 
             @NgModuleFacade({id: "test", providers: [P]})
@@ -722,7 +731,7 @@ describe("facade", function() {
         it("should convert @PipeFacade({pure: false}) to $stateful", function() {
             @PipeFacade({name: "pureFalse", pure: false})
             class P implements PipeTransformFacade {
-                transform(x) { return x; }
+                transform(x: any) { return x; }
             }
 
             @NgModuleFacade({id: "test", providers: [P]})
@@ -768,7 +777,7 @@ describe("facade", function() {
         it("should inject other services via @InjectFacade('thing')", function() {
             @InjectableFacade()
             class Foo {
-                constructor(@InjectFacade("$rootScope") public theScope) {}
+                constructor(@InjectFacade("$rootScope") public theScope: angular.IRootScopeService) {}
             }
 
             @NgModuleFacade({id: "test", providers: [Foo]})
@@ -810,7 +819,7 @@ describe("facade", function() {
 
             @InjectableFacade()
             class Bar {
-                constructor(public f: Foo, @InjectFacade("$rootScope") public s) {}
+                constructor(public f: Foo, @InjectFacade("$rootScope") public s: angular.IRootScopeService) {}
             }
 
             @NgModuleFacade({id: "test", providers: [Foo, Bar]})
@@ -828,7 +837,7 @@ describe("facade", function() {
 
             @InjectableFacade()
             class Bar {
-                constructor(public b: Baz, @InjectFacade("$rootScope") public s) {}
+                constructor(public b: Baz, @InjectFacade("$rootScope") public s: angular.IRootScopeService) {}
             }
 
             @InjectableFacade()
@@ -871,7 +880,7 @@ describe("facade", function() {
     describe("@InjectFacade", function() {
         it("should fill the $inject array based on constructor @InjectFacade arguments", function() {
             class Foo {
-                constructor(@InjectFacade("foo") private myFoo, other, @InjectFacade("bar") public myBar) {}
+                constructor(@InjectFacade("foo") private myFoo: any, other: any, @InjectFacade("bar") public myBar: any) {}
             }
 
             expect(Foo.$inject).toEqual(<string[]>["foo", undefined, "bar"]);
@@ -949,7 +958,7 @@ describe("facade", function() {
                 const $injector: angular.auto.IInjectorService = bootstrapAndInitialize("test", "$injector");
 
                 let instance;
-                function method($rootScope, serv) {
+                function method($rootScope: angular.IRootScopeService, serv: Service) {
                     instance = serv;
                 }
                 (<any>method).$inject = ["$rootScope", Service];
@@ -961,11 +970,10 @@ describe("facade", function() {
     });
 
     describe("$provide", function() {
-        function Obj() { /*empty*/ }
+        class O { /*empty*/ }
 
         describe("constant", function() {
             it("should allow types as names on IModule", function() {
-                const O = new Obj();
                 const mod = angular.module("test", []);
                 mod.constant(O, 42);
 
@@ -975,7 +983,6 @@ describe("facade", function() {
             });
 
             it("should allow types as names on $provide", function() {
-                const O = new Obj();
                 const mod = angular.module("test", []);
                 mod.config(["$provide", function(p: angular.auto.IProvideService) {
                     p.constant(O, 42);
@@ -987,7 +994,6 @@ describe("facade", function() {
             });
 
             it("should support {key: value} Objects", function() {
-                const O = new Obj();
                 const mod = angular.module("test", []);
                 mod.constant({foo: 42});
 
@@ -999,7 +1005,6 @@ describe("facade", function() {
 
         describe("value", function() {
             it("should allow types as names on IModule", function() {
-                const O = new Obj();
                 const mod = angular.module("test", []);
                 mod.value(O, 42);
 
@@ -1009,7 +1014,6 @@ describe("facade", function() {
             });
 
             it("should allow types as names on $provide", function() {
-                const O = new Obj();
                 const mod = angular.module("test", []);
                 mod.config(["$provide", function(p: angular.auto.IProvideService) {
                     p.value(O, 42);
@@ -1033,7 +1037,6 @@ describe("facade", function() {
         describe("service", function() {
             it("should allow types as names on IModule", function() {
                 class TheType {}
-                const O = new Obj();
                 const mod = angular.module("test", []);
                 mod.service(O, TheType);
 
@@ -1044,7 +1047,6 @@ describe("facade", function() {
 
             it("should allow types as names on $provide", function() {
                 class TheType {}
-                const O = new Obj();
                 const mod = angular.module("test", []);
                 mod.config(["$provide", function(p: angular.auto.IProvideService) {
                     p.service(O, TheType);
@@ -1068,7 +1070,6 @@ describe("facade", function() {
 
         describe("factory", function() {
             it("should allow types as names on IModule", function() {
-                const O = new Obj();
                 const mod = angular.module("test", []);
                 mod.factory(O, function() { return 42; });
 
@@ -1078,7 +1079,6 @@ describe("facade", function() {
             });
 
             it("should allow types as names on $provide", function() {
-                const O = new Obj();
                 const mod = angular.module("test", []);
                 mod.config(["$provide", function(p: angular.auto.IProvideService) {
                     p.factory(O, function() { return 42; });
@@ -1104,10 +1104,9 @@ describe("facade", function() {
                 let del: TheType | undefined;
 
                 class TheType {}
-                const O = new Obj();
                 const mod = angular.module("test", []);
                 mod.service(O, TheType);
-                mod.decorator(O, ["$delegate", function($delegate) {
+                mod.decorator(O, ["$delegate", function($delegate: TheType) {
                     del = $delegate;
                     return 42;
                 }]);
@@ -1122,12 +1121,11 @@ describe("facade", function() {
                 let del: TheType | undefined;
 
                 class TheType {}
-                const O = new Obj();
                 const mod = angular.module("test", []);
                 mod.service(O, TheType);
 
                 mod.config(["$provide", function(p: angular.auto.IProvideService) {
-                    p.decorator(O, ["$delegate", function($delegate) {
+                    p.decorator(O, ["$delegate", function($delegate: TheType) {
                         del = $delegate;
                         return 42;
                     }]);
@@ -1141,7 +1139,6 @@ describe("facade", function() {
 
         describe("provider", function() {
             it("should allow providing by type on IModule", function() {
-                const O = new Obj();
                 const mod = angular.module("test", []);
                 mod.provider(O, {$get() { return 42; }});
 
@@ -1151,7 +1148,6 @@ describe("facade", function() {
             });
 
             it("should allow providing by type on $provide", function() {
-                const O = new Obj();
                 const mod = angular.module("test", []);
                 mod.config(["$provide", function(p: angular.auto.IProvideService) {
                     p.provider(O, {$get() { return 42; }});
@@ -1234,7 +1230,7 @@ describe("facade", function() {
             // The module containing the downgradeProvder() style thing
             // ... which depends on a test-time provided-thing (like the ng2 injector)
             angular.module("inject-testing2", [])
-                .factory(Foo, ["provided-thing", function(thing) {
+                .factory(Foo, ["provided-thing", function(thing: Foo) {
                     return thing;
                 }])
             ;
@@ -1270,7 +1266,7 @@ describe("facade", function() {
             class Foo {}
 
             const module = createModule(Foo);
-            let injected;
+            let injected: Foo | undefined;
 
             module.run([Foo, function(f: Foo) { injected = f; }]);
 
@@ -1280,12 +1276,12 @@ describe("facade", function() {
 
         it("should support injecting any key type into run", function() {
             const injectorKey = {};
-            const injectorValue = [];
+            const injectorValue = [0];
 
             const module = createModule({provide: injectorKey, useValue: injectorValue});
-            let injected;
+            let injected: number[] | undefined;
 
-            module.run([injectorKey, function(f) { injected = f; }]);
+            module.run([injectorKey, function(f: any[]) { injected = f; }]);
 
             bootstrap(module);
             expect(injected).toBe(injectorValue);
@@ -1296,7 +1292,7 @@ describe("facade", function() {
             class Foo {}
 
             const module = createModule(Foo);
-            let injected;
+            let injected: Foo | undefined;
 
             module.directive("injectFoo", [Foo, function(f: Foo): angular.IDirective {
                 injected = f;
@@ -1313,12 +1309,12 @@ describe("facade", function() {
 
         it("should support injecting any key type into directive factories", function() {
             const injectorKey = {};
-            const injectorValue = [];
+            const injectorValue = [0];
 
             const module = createModule({provide: injectorKey, useValue: injectorValue});
-            let injected;
+            let injected: number[] | undefined;
 
-            module.directive("injectFoo", [injectorKey, function(f): angular.IDirective {
+            module.directive("injectFoo", [injectorKey, function(f: number[]): angular.IDirective {
                 injected = f;
                 return {};
             }]);
@@ -1336,7 +1332,7 @@ describe("facade", function() {
             class Foo {}
 
             const module = createModule(Foo);
-            let injected;
+            let injected: Foo | undefined;
 
             module.component("injectFoo", {controller: [Foo, function(f: Foo) { injected = f; return {}; }]});
 
@@ -1356,7 +1352,7 @@ describe("facade", function() {
         //     class Foo {}
 
         //     const module = createModule({provide: injectorKey, useValue: Foo});
-        //     let injected;
+        //     let injected: Foo | undefined;
 
         //     module.component("injectFoo", {controller: [injectorKey, function(f: Foo) { injected = f; return {}; }]});
 
@@ -1373,7 +1369,7 @@ describe("facade", function() {
             class Foo {}
 
             const module = createModule(Foo);
-            let injected;
+            let injected: Foo | undefined;
 
             module.controller("injectFoo", [Foo, function(f: Foo) { injected = f; }]);
 
@@ -1384,12 +1380,12 @@ describe("facade", function() {
 
         it("should support injecting any key type into controllers", function() {
             const injectorKey = {};
-            const injectorValue = [];
+            const injectorValue = [0];
 
             const module = createModule({provide: injectorKey, useValue: injectorValue});
-            let injected;
+            let injected: number[] | undefined;
 
-            module.controller("injectFoo", [injectorKey, function(f) { injected = f; }]);
+            module.controller("injectFoo", [injectorKey, function(f: number[]) { injected = f; }]);
 
             const $controller: angular.IControllerService = bootstrapAndInitialize(module, "$controller");
             $controller("injectFoo");
@@ -1401,7 +1397,7 @@ describe("facade", function() {
             class Foo {}
 
             const module = createModule(Foo);
-            let injected;
+            let injected: Foo | undefined;
 
             module.factory("injectFoo", [Foo, function(f: Foo) { return (injected = f); }]);
 
@@ -1411,12 +1407,12 @@ describe("facade", function() {
 
         it("should support injecting any key type into factories", function() {
             const injectorKey = {};
-            const injectorValue = [];
+            const injectorValue = [0];
 
             const module = createModule({provide: injectorKey, useValue: injectorValue});
-            let injected;
+            let injected: number[] | undefined;
 
-            module.factory("injectFoo", [injectorKey, function(f) { return (injected = f); }]);
+            module.factory("injectFoo", [injectorKey, function(f: number[]) { return (injected = f); }]);
 
             bootstrapAndInitialize(module, "injectFoo");
             expect(injected).toBe(injectorValue);
@@ -1427,7 +1423,7 @@ describe("facade", function() {
             class Foo {}
 
             const module = createModule(Foo);
-            let injected;
+            let injected: Foo | undefined;
 
             module.service("injectFoo", [Foo, function(f: Foo) { return (injected = f); }]);
 
@@ -1437,12 +1433,12 @@ describe("facade", function() {
 
         it("should support injecting any key type into services", function() {
             const injectorKey = {};
-            const injectorValue = [];
+            const injectorValue = [0];
 
             const module = createModule({provide: injectorKey, useValue: injectorValue});
-            let injected;
+            let injected: number[] | undefined;
 
-            module.service("injectFoo", [injectorKey, function(f) { return (injected = f); }]);
+            module.service("injectFoo", [injectorKey, function(f: number[]) { return (injected = f); }]);
 
             bootstrapAndInitialize(module, "injectFoo");
             expect(injected).toBe(injectorValue);
@@ -1453,7 +1449,7 @@ describe("facade", function() {
             class Foo {}
 
             const module = createModule(Foo);
-            let injected;
+            let injected: Foo | undefined;
 
             module.filter("injectFoo", [Foo, function(f: Foo) { return (injected = f); }]);
 
@@ -1463,12 +1459,12 @@ describe("facade", function() {
 
         it("should support injecting any key type into filters", function() {
             const injectorKey = {};
-            const injectorValue = [];
+            const injectorValue = [0];
 
             const module = createModule({provide: injectorKey, useValue: injectorValue});
-            let injected;
+            let injected: number[] | undefined;
 
-            module.filter("injectFoo", [injectorKey, function(f) { return (injected = f); }]);
+            module.filter("injectFoo", [injectorKey, function(f: number[]) { return (injected = f); }]);
 
             bootstrapAndInitialize(module, "$filter")("injectFoo");
             expect(injected).toBe(injectorValue);
@@ -1479,9 +1475,9 @@ describe("facade", function() {
             class Foo {}
 
             const module = createModule(Foo);
-            let injected;
+            let injected: Foo | undefined;
 
-            module.decorator("$parse", [Foo, "$delegate", function(f: Foo, d) {
+            module.decorator("$parse", [Foo, "$delegate", function(f: Foo, d: angular.IParseService) {
                 injected = f;
                 return d;
             }]);
@@ -1492,12 +1488,12 @@ describe("facade", function() {
 
         it("should support injecting any key type into decorators", function() {
             const injectorKey = {};
-            const injectorValue = [];
+            const injectorValue = [0];
 
             const module = createModule({provide: injectorKey, useValue: injectorValue});
-            let injected;
+            let injected: number[] | undefined;
 
-            module.decorator("$parse", [injectorKey, "$delegate", function(f, d) {
+            module.decorator("$parse", [injectorKey, "$delegate", function(f: number[], d: angular.IParseService) {
                 injected = f;
                 return d;
             }]);
@@ -1553,7 +1549,7 @@ describe("facade", function() {
             @NgModuleFacade({id: "compMod", declarations: [Comp]})
             class Mod {}
 
-            expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({controller: Comp}));
+            expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining<angular.IDirective>({controller: Comp}));
         });
 
         it("should provide module.component like defaults for @ComponentFacade() to module.directive", function() {
@@ -1567,7 +1563,7 @@ describe("facade", function() {
             @NgModuleFacade({id: "compMod", declarations: [Comp]})
             class Mod {}
 
-            expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining({
+            expectDirectiveDefinitionCall(spies, "compSelector", jasmine.objectContaining<angular.IDirective>({
                 controller: Comp,
                 controllerAs: "$ctrl",
                 scope: {},
@@ -1603,7 +1599,7 @@ describe("facade", function() {
                 })
                 class Comp {
                     @InputFacade()
-                    public inputName;
+                    public inputName: any;
                 }
 
                 @NgModuleFacade({id: "compMod", declarations: [Comp]})
@@ -1620,7 +1616,7 @@ describe("facade", function() {
                 })
                 class Comp {
                     @InputFacade("altName")
-                    public inputName;
+                    public inputName: any;
                 }
 
                 @NgModuleFacade({id: "compMod", declarations: [Comp]})
@@ -1637,7 +1633,7 @@ describe("facade", function() {
                 })
                 class Comp {
                     @InputFacade("dash-cased")
-                    public inputName;
+                    public inputName: any;
                 }
 
                 @NgModuleFacade({id: "compMod", declarations: [Comp]})
@@ -1657,7 +1653,7 @@ describe("facade", function() {
                 })
                 class Comp {
                     @InputStringFacade()
-                    public inputName;
+                    public inputName: any;
                 }
 
                 @NgModuleFacade({id: "compMod", declarations: [Comp]})
@@ -1674,7 +1670,7 @@ describe("facade", function() {
                 })
                 class Comp {
                     @InputCallbackFacade()
-                    public inputName;
+                    public inputName: any;
                 }
 
                 @NgModuleFacade({id: "compMod", declarations: [Comp]})
@@ -1880,7 +1876,7 @@ describe("facade", function() {
                         instance = this;
                     }
 
-                    fire(n) {
+                    fire(n: number) {
                         this.outputName.emit(n);
                     }
                 }
@@ -1899,7 +1895,7 @@ describe("facade", function() {
             });
 
             it("should throw when emiting @OutputFacade() within $onInit", function() {
-                let caughtException;
+                let caughtException: Error | undefined;
 
                 @ComponentFacade({
                     selector: "comp"
@@ -1966,7 +1962,7 @@ describe("facade", function() {
                         instance = this;
                     }
 
-                    fire(n) {
+                    fire(n: number) {
                         this.outputName.emit(n);
                     }
                 }
@@ -1991,7 +1987,7 @@ describe("facade", function() {
                     })
                     class Comp {
                         @OutputFacade()
-                        public outputName;
+                        public outputName: any;
                     }
                 })
                 .toThrowError("Comp.outputName type must be EventEmitterFacade");
@@ -2022,7 +2018,7 @@ describe("facade", function() {
                 })
                 class Comp {
                     @RequireFacade()
-                    public requirement;
+                    public requirement: any;
                 }
 
                 @NgModuleFacade({id: "compMod", declarations: [Comp]})
@@ -2042,7 +2038,7 @@ describe("facade", function() {
                 })
                 class Comp {
                     @RequireFacade("^")
-                    public requirement;
+                    public requirement: any;
                 }
 
                 @NgModuleFacade({id: "compMod", declarations: [Comp]})
@@ -2062,7 +2058,7 @@ describe("facade", function() {
                 })
                 class Comp {
                     @RequireFacade("name")
-                    public requirement;
+                    public requirement: any;
                 }
 
                 @NgModuleFacade({id: "compMod", declarations: [Comp]})
@@ -2082,7 +2078,7 @@ describe("facade", function() {
                 })
                 class Comp {
                     @RequireFacade("^^name")
-                    public requirement;
+                    public requirement: any;
                 }
 
                 @NgModuleFacade({id: "compMod", declarations: [Comp]})
@@ -2102,7 +2098,7 @@ describe("facade", function() {
                 })
                 class Comp {
                     @RequireFacade("dash-cased")
-                    public requirement;
+                    public requirement: any;
                 }
 
                 @NgModuleFacade({id: "compMod", declarations: [Comp]})
@@ -2122,7 +2118,7 @@ describe("facade", function() {
                 })
                 class Comp {
                     @RequireFacade("^dash-cased")
-                    public requirement;
+                    public requirement: any;
                 }
 
                 @NgModuleFacade({id: "compMod", declarations: [Comp]})
@@ -2142,7 +2138,7 @@ describe("facade", function() {
                 })
                 class Comp {
                     @RequireFacade()
-                    public camelCased;
+                    public camelCased: any;
                 }
 
                 @NgModuleFacade({id: "compMod", declarations: [Comp]})
@@ -2162,7 +2158,7 @@ describe("facade", function() {
                 })
                 class Comp {
                     @RequireFacade()
-                    public ngModel;
+                    public ngModel: angular.INgModelController;
 
                     constructor() { instance = this; }
                 }
@@ -2184,7 +2180,7 @@ describe("facade", function() {
                 })
                 class Comp {
                     @RequireFacade("ngModel")
-                    public foo;
+                    public foo: angular.INgModelController;
 
                     constructor() { instance = this; }
                 }
@@ -2206,7 +2202,7 @@ describe("facade", function() {
                 })
                 class Comp {
                     @RequireFacade("ng-model")
-                    public foo;
+                    public foo: angular.INgModelController;
 
                     constructor() { instance = this; }
                 }
@@ -2230,8 +2226,8 @@ describe("facade", function() {
                 })
                 class Comp {
                     @HostListenerFacade("asdf")
-                    adsf() {
-                        foo.apply(this, arguments);
+                    adsf(...args: any[]) {
+                        foo.apply(this, args);
                     }
                 }
 
@@ -2254,12 +2250,12 @@ describe("facade", function() {
                 })
                 class Comp {
                     @HostListenerFacade("asdf")
-                    foo() {
-                        foo.apply(this, arguments);
+                    foo(...args: any[]) {
+                        foo.apply(this, args);
                     }
                     @HostListenerFacade("asdf")
-                    bar() {
-                        bar.apply(this, arguments);
+                    bar(...args: any[]) {
+                        bar.apply(this, args);
                     }
                 }
 
@@ -2278,12 +2274,12 @@ describe("facade", function() {
             it("should invoke the expression within a digest", function() {
                 const foo = jasmine.createSpy("foo event callback");
 
-                let phase;
+                let phase: string | undefined;
                 @ComponentFacade({
                     selector: "comp"
                 })
                 class Comp {
-                    constructor(@InjectFacade("$rootScope") public $rootScope) {}
+                    constructor(@InjectFacade("$rootScope") public $rootScope: angular.IRootScopeService) {}
 
                     @HostListenerFacade("asdf")
                     adsf() {
@@ -2308,10 +2304,10 @@ describe("facade", function() {
                     selector: "comp"
                 })
                 class Comp {
-                    constructor(@InjectFacade("$element") private $element) {}
+                    constructor(@InjectFacade("$element") private $element: JQLite) {}
                     @HostListenerFacade("asdf")
-                    adsf() {
-                        foo.apply(this, arguments);
+                    adsf(...args: any[]) {
+                        foo.apply(this, args);
                     }
 
                     @HostListenerFacade("first")
@@ -2338,8 +2334,8 @@ describe("facade", function() {
                 })
                 class Comp {
                     @HostListenerFacade("asdf", ["1", "2", "null"])
-                    adsf() {
-                        foo.apply(this, arguments);
+                    adsf(...args: any[]) {
+                        foo.apply(this, args);
                     }
                 }
 
@@ -2361,8 +2357,8 @@ describe("facade", function() {
                 })
                 class Comp {
                     @HostListenerFacade("asdf", ["$event"])
-                    adsf() {
-                        foo.apply(this, arguments);
+                    adsf(...args: any[]) {
+                        foo.apply(this, args);
                     }
                 }
 
@@ -2384,8 +2380,8 @@ describe("facade", function() {
                 })
                 class Comp {
                     @HostListenerFacade("asdf", ["$event.target", "1+2"])
-                    adsf() {
-                        foo.apply(this, arguments);
+                    adsf(...args: any[]) {
+                        foo.apply(this, args);
                     }
                 }
 
@@ -2407,8 +2403,8 @@ describe("facade", function() {
                 })
                 class Comp {
                     @HostListenerFacade("asdf", ["$root", "$id", "$ctrl"])
-                    adsf() {
-                        foo.apply(this, arguments);
+                    adsf(...args: any[]) {
+                        foo.apply(this, args);
                     }
                 }
 
@@ -2425,7 +2421,7 @@ describe("facade", function() {
     });
 
     describe("@DirectiveFacade", function() {
-        function getMockedDirective(spies) {
+        function getMockedDirective(spies: {directive: jasmine.Spy}) {
             expect(spies.directive).toHaveBeenCalled();
 
             const [name, factory] = spies.directive.calls.mostRecent().args;
@@ -2550,7 +2546,7 @@ describe("facade", function() {
                     selector: "dir"
                 })
                 class Dir {
-                    @InputFacade() public foo;
+                    @InputFacade() public foo: any;
                 }
 
                 expect(function() {
@@ -2580,7 +2576,7 @@ describe("facade", function() {
                     selector: "dir"
                 })
                 class Dir {
-                    @RequireFacade() public foo;
+                    @RequireFacade() public foo: any;
                 }
 
                 expect(function() {
@@ -2600,8 +2596,8 @@ describe("facade", function() {
                 })
                 class Comp {
                     @HostListenerFacade("asdf")
-                    adsf() {
-                        foo.apply(this, arguments);
+                    adsf(...args: any[]) {
+                        foo.apply(this, args);
                     }
                 }
 
@@ -2619,7 +2615,7 @@ describe("facade", function() {
 
     it("should not use raw function names as angular service names", function() {
         spyOn(<any>window, "angular");
-        delete window["angular"].mock;
+        delete (window as any)["angular"].mock;
 
         @InjectableFacade()
         class Service {

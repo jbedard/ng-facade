@@ -21,10 +21,11 @@
 
         "outDir": "dist",
 
-        "noImplicitThis": true,
         "noImplicitReturns": true,
-        "alwaysStrict": true,
-        "strictNullChecks": true,
+        "strict": true,
+
+        //Doesn't play well with Angular @Input()
+        "strictPropertyInitialization": false,
 
         "baseUrl": "src",
         "paths": {}
